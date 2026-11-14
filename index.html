@@ -207,7 +207,7 @@ textarea{min-height:84px;resize:vertical}
 
 <script>
 "use strict";
-const APP_VER="1.1";
+const APP_VER="1.2";
 const svgI=(d,s=18)=>`<svg class="ico" viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const P={
   cam:'<path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.8l1.4-2h6.6l1.4 2h1.8A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.6"/>',
@@ -314,7 +314,7 @@ const isClosed=date=>!!weekRec(monday(date))?.closedAt;
 /* ================= pay rules ================= */
 function dayF(r){if(r.dayF!==""&&r.dayF!=null)return +r.dayF;return (r.in||r.out)?1:0}
 function otH(r){if(r.otH!==""&&r.otH!=null)return +r.otH;if(!r.otIn||!r.otOut)return 0;let m=mins(r.otOut)-mins(r.otIn);if(m<0)m+=1440;return Math.floor(m/30)/2}
-function otRateHr(r){const p=S.projects.find(x=>x.id===r.pid)||proj()||{};if(r.otHr!==""&&r.otHr!=null&&+r.otHr>0)return +r.otHr;return (+r.wage||0)/(+p.hoursPerDay||8)*(+p.otRate||1.5)}
+function otRateHr(r){if(r.otHr!==""&&r.otHr!=null&&+r.otHr>0)return +r.otHr;return (+r.wage||0)/(+CFG.hoursPerDay||8)*(+CFG.otRate||1.5)}
 function pay(r){const d=dayF(r),h=otH(r);const n=(+r.wage||0)*d,o=h*otRateHr(r);return {d,h,n,o,t:n+o}}
 function summarize(recs){
   const by=new Map();const tot={d:0,h:0,n:0,o:0,t:0,people:0};
@@ -325,7 +325,7 @@ function summarize(recs){
 const recsBetween=(a,b)=>S.att.filter(r=>r.date>=a&&r.date<=b);
 function projStart(){const p=proj();const ds=S.att.map(r=>r.date).sort();return p.startDate||(ds[0]||todayISO())}
 const weekNo=mon=>Math.floor(dayDiff(monday(projStart()),mon)/7)+1;
-const isLate=r=>{const p=proj();return r.in&&p.timeIn&&mins(r.in)>mins(p.timeIn)};
+const isLate=r=>r.in&&CFG.timeIn&&mins(r.in)>mins(CFG.timeIn);
 
 /* ================= photos ================= */
 function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src})}
@@ -381,7 +381,7 @@ async function cropFace(c,box,size=220,q=0.85){const m=box.w*0.45;const s=Math.m
 const descArr=d=>Array.from(d,v=>Math.round(v*1e5)/1e5);
 let matcherDirty=true,matcher=[];
 function getMatcher(){if(matcherDirty){matcher=S.workers.filter(w=>w.active!==false&&w.descs&&w.descs.length).map(w=>({wid:w.id,ds:w.descs.map(a=>Float32Array.from(a))}));matcherDirty=false}return matcher}
-const thresh=()=>+(proj()?.thresh||0.5);
+const thresh=()=>+(CFG.thresh||0.5);
 function bestDist(desc,ds){let m=9;for(const q of ds){const e=faceapi.euclideanDistance(desc,q);if(e<m)m=e}return m}
 function matchFaces(dets){
   const M=getMatcher(),T=thresh();const pairs=[];
@@ -448,15 +448,15 @@ async function renderHome(){
   let body;
   if(ht==="workers")body=workersHtml(all);
   else{const cards=[...S.projects].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)).map(p=>{let t=0;all.filter(r=>r.pid===p.id).forEach(r=>t+=pay(r).t);
-    return `<button class="pcard" data-open="${esc(p.id)}"><h3>${esc(p.name||"(ไม่มีชื่อ)")}</h3><p>${esc(p.project||"")}</p><p>เริ่มโครงการ: ${p.startDate?thDate(p.startDate):"-"}</p><div class="stat"><span class="chip all">${crew(p.id).length} คนงาน</span><span class="chip ok">ค่าแรงสะสม ฿${fmt0(t)}</span></div></button>`}).join("");
+    return `<button class="pcard" data-open="${esc(p.id)}"><h3>${esc(p.name||"(ไม่มีชื่อ)")}</h3><p>${esc(p.work||p.project||"")}</p>${p.location?`<p>${esc(p.location)}</p>`:""}${p.owner?`<p>เจ้าของงาน: ${esc(p.owner)}</p>`:""}<p>สัญญา: ${p.startDate?thDate(p.startDate):"-"} – ${p.endDate?thDate(p.endDate):"-"}</p><div class="stat"><span class="chip all">${crew(p.id).length} คนงาน</span><span class="chip ok">ค่าแรงสะสม ฿${fmt0(t)}</span></div></button>`}).join("");
     body=`<div class="grid">${cards}<button class="pcard pnew" id="newProj">＋ สร้างโครงการใหม่</button></div>`}
   $("#main").innerHTML=banner()+tabs+body+`
-  <div class="acts" style="margin-top:18px"><button class="btn" id="bkOut">${I("down")} สำรองข้อมูล (ไฟล์ .json)</button><button class="btn" id="bkIn">${I("up")} นำเข้าข้อมูลสำรอง</button><input type="file" id="bkFile" accept=".json,application/json" hidden></div>
+  <div class="acts" style="margin-top:18px"><button class="btn" id="cfgBtn">${I("gear")} ตั้งค่าการคิดค่าแรง</button><button class="btn" id="bkOut">${I("down")} สำรองข้อมูล (ไฟล์ .json)</button><button class="btn" id="bkIn">${I("up")} นำเข้าข้อมูลสำรอง</button><input type="file" id="bkFile" accept=".json,application/json" hidden></div>
   <p class="hint" style="margin-top:22px">วิธีใช้: ① แท็บ “โครงการ” สร้างโครงการ ② แท็บ “ทะเบียนคนงาน” ลงทะเบียนคนงาน (ถ่ายรูปตัวเต็ม + รูปหน้า, ชื่อ, ค่าแรง, ประจำโครงการไหน) ③ เปิดโครงการ ทุกเช้าให้คนงานยืนเรียงหน้ากระดาน กด “สแกนหน้า” → เลิกงาน/OT ทำแบบเดียวกัน ④ เช้าวันจันทร์กด “สรุปรอบ & PDF”</p><p class="hint" style="text-align:right">เวอร์ชัน ${APP_VER}</p>`;
   document.querySelectorAll("[data-ht]").forEach(b=>b.onclick=()=>{S.homeTab=b.dataset.ht;render()});
   if($("#newProj"))$("#newProj").onclick=()=>editProject(null);
   bindWorkers();hydrate();
-  $("#bkOut").onclick=exportBackup;$("#bkIn").onclick=()=>{$("#bkFile").value="";$("#bkFile").click()};$("#bkFile").onchange=e=>{const f=e.target.files[0];if(f)importBackup(f)};
+  $("#cfgBtn").onclick=editSettings;$("#bkOut").onclick=exportBackup;$("#bkIn").onclick=()=>{$("#bkFile").value="";$("#bkFile").click()};$("#bkFile").onchange=e=>{const f=e.target.files[0];if(f)importBackup(f)};
   document.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openProject(b.dataset.open));
 }
 async function openProject(id){S.pid=id;S.tab="today";S.date=todayISO();S.weekOf=monday(todayISO());S.month=todayISO().slice(0,7);await loadProject(id);render();window.scrollTo(0,0)}
@@ -468,7 +468,7 @@ function renderProject(){
   let html="";
   const pw=pendingWeek();
   if(pw)html+=`<div class="banner">${I("info")} ยังไม่ได้สรุปรอบที่ ${weekNo(pw)} (${weekLabel(pw)})<span class="sp"></span><button class="btn gold sm" id="doPend">${I("pdf")} สรุป & ออก PDF</button></div>`;
-  html+=`<div class="tabs">${[["today","clock","ลงเวลา"],["sum","money","สรุปค่าแรง"],["logs","book","บันทึกประจำวัน"]].map(([k,ic,l])=>`<button data-tab="${k}" class="${t===k?"on":""}">${I(ic,17)} ${l}</button>`).join("")}<span style="flex:1"></span><button class="ibtn" id="editProj">${I("gear")} ตั้งค่าโครงการ</button></div><div id="tabBody"></div>`;
+  html+=`<div class="tabs">${[["today","clock","ลงเวลา"],["sum","money","สรุปค่าแรง"],["logs","book","บันทึกประจำวัน"]].map(([k,ic,l])=>`<button data-tab="${k}" class="${t===k?"on":""}">${I(ic,17)} ${l}</button>`).join("")}<span style="flex:1"></span><button class="ibtn" id="editProj">${I("pen")} ข้อมูลโครงการ</button></div><div id="tabBody"></div>`;
   $("#main").innerHTML=html;
   if(pw)$("#doPend").onclick=()=>pdfDialog(pw);
   document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{S.tab=b.dataset.tab;render()});
@@ -493,7 +493,7 @@ function renderToday(){
       h+=`<tr class="click ${r&&(r.in||r.out)?"":"off"}" data-rec="${w.id}"><td>${i+1}</td><td>${avatar(w)}</td><td class="l"><div class="nm">${esc(w.name)}</div><div class="sub">${esc(w.role||"")} ฿${fmt(w.wage)}/วัน</div></td>
       <td class="${r&&isLate(r)?"late":""}">${r?.in||"–"}</td><td>${r?.out||"–"}</td><td>${r?.otIn||"–"}</td><td>${r?.otOut||(r?.otIn?'<span class="chip wait">ยังไม่ออก</span>':"–")}</td><td>${pp&&pp.h?pp.h:"–"}</td><td class="r">${pp&&pp.t?fmt(pp.t):"–"}${pp&&pp.d===0.5?' <span class="chip wait">½</span>':""}</td></tr>`});
     h+=`<tr class="tot"><td colspan="3" class="l">รวม</td><td>${cnt("in")}</td><td>${cnt("out")}</td><td>${cnt("otIn")}</td><td>${cnt("otOut")}</td><td>${fmt(sm.h)}</td><td class="r">${fmt(sm.t)}</td></tr></table></div>`}
-  h+=`<p class="hint">แตะที่แถวเพื่อแก้เวลา / ครึ่งวัน / ชม. OT • ตัวสีส้ม = เข้างานหลัง ${esc(proj().timeIn||"08:00")} น.</p></div>`;
+  h+=`<p class="hint">แตะที่แถวเพื่อแก้เวลา / ครึ่งวัน / ชม. OT • ตัวสีส้ม = เข้างานหลัง ${esc(CFG.timeIn||"08:00")} น.</p></div>`;
   $("#tabBody").innerHTML=h;
   const go=n=>{S.date=n;render()};
   $("#dPrev").onclick=()=>go(addDays(d,-1));$("#dNext").onclick=()=>go(addDays(d,1));$("#dPick").onchange=e=>e.target.value&&go(e.target.value);
@@ -577,27 +577,46 @@ function renderLogs(){
 
 /* ================= project edit ================= */
 function editProject(p){
-  const n=!p;p=p?clone(p):{id:uid(),name:"",project:"",location:"",company:"บริษัท โปร คอนสตรัคชั่น แอนด์ ดีไซน์ จำกัด",startDate:todayISO(),timeIn:"08:00",timeOut:"17:00",hoursPerDay:8,otRate:1.5,thresh:0.5,preparer:"",createdAt:Date.now()};
-  const sh=openSheet(`<h2>${n?"สร้างโครงการใหม่":"ตั้งค่าโครงการ"}</h2>
-   ${micField("pName","ชื่อย่อ (แสดงในแอป)",p.name,false,"เช่น บ้านคุณสมชาย – ลำพูน")}
-   ${micField("pProject","ชื่อโครงการ (พิมพ์ในรายงาน)",p.project,false,"เช่น ก่อสร้างอาคารพักอาศัย 2 ชั้น")}
-   ${micField("pLoc","สถานที่",p.location,false)}
-   ${micField("pComp","ผู้รับจ้าง / บริษัท",p.company,false)}
-   <div class="row">${fld("pStart","วันเริ่มโครงการ",p.startDate,"date")}${fld("pIn","เวลาเข้างานปกติ",p.timeIn,"time")}${fld("pOut","เวลาเลิกงานปกติ",p.timeOut,"time")}</div>
-   <div class="row">${fld("pHrs","ชั่วโมงทำงาน/วัน (ใช้คิดค่า OT)",p.hoursPerDay,"number","8",'step="0.5"')}${fld("pOT","อัตรา OT (เท่าของค่าแรงต่อชั่วโมง)",p.otRate,"number","1.5",'step="0.05"')}</div>
-   <div class="fld"><label>ความเข้มงวดในการจดจำใบหน้า</label><select id="pTh">${[[0.45,"เข้มงวด (ลดการจำผิดคน)"],[0.5,"ปกติ (แนะนำ)"],[0.55,"หลวม (จำง่ายขึ้น)"]].map(([v,l])=>`<option value="${v}" ${+p.thresh===v?"selected":""}>${l}</option>`).join("")}</select></div>
-   ${micField("pPrep","ชื่อผู้จัดทำรายงาน (ลงในช่องลงนาม)",p.preparer,false)}
-   <p class="hint">ค่า OT ต่อชั่วโมง = ค่าแรงต่อวัน ÷ ชั่วโมงทำงาน × อัตรา OT (เช่น 400 ÷ 8 × 1.5 = 75 บาท/ชม.) — กำหนดเป็นรายคนได้ในหน้าคนงาน • ชั่วโมง OT ปัดลงทีละ 30 นาที</p>
+  const n=!p;p=p?clone(p):{id:uid(),name:"",work:"",location:"",owner:"",supervisor:"",company:"บจก.โปร-คอน",startDate:todayISO(),endDate:"",createdAt:Date.now()};
+  const sh=openSheet(`<h2>${n?"สร้างโครงการใหม่":"ข้อมูลโครงการ"}</h2>
+   ${micField("pName","ชื่อโครงการ",p.name,false,"เช่น บ้านคุณสมชาย")}
+   ${micField("pWork","งาน",p.work??p.project??"",false,"เช่น ก่อสร้างอาคารพักอาศัย 2 ชั้น")}
+   ${micField("pLoc","ที่อยู่",p.location,true,"เลขที่ / ตำบล / อำเภอ / จังหวัด")}
+   ${micField("pOwner","เจ้าของงาน",p.owner,false)}
+   ${micField("pSup","ผู้ควบคุมงาน",p.supervisor,false)}
+   ${micField("pComp","ผู้รับจ้าง",p.company||"บจก.โปร-คอน",false)}
+   <div class="fld"><label>ระยะเวลาในสัญญา</label><div class="row">${fld("pStart","เริ่ม",p.startDate,"date")}${fld("pEnd","สิ้นสุด",p.endDate,"date")}</div><div class="hint" id="pDur"></div></div>
    <div class="acts">${n?"":`<button class="btn del" id="pDel">${I("trash")} ลบโครงการ</button>`}<span class="sp"></span><button class="btn" id="pC">ยกเลิก</button><button class="btn pri" id="pS">บันทึก</button></div>`);
+  const dur=()=>{const a=$("#pStart").value,b=$("#pEnd").value;$("#pDur").textContent=a&&b?(b<a?"วันสิ้นสุดต้องอยู่หลังวันเริ่ม":`รวม ${dayDiff(a,b)+1} วัน`):""};
+  $("#pStart").oninput=dur;$("#pEnd").oninput=dur;dur();
   sh.querySelector("#pC").onclick=closeSheet;
   sh.querySelector("#pS").onclick=async()=>{
-    Object.assign(p,{name:$("#pName").value.trim()||$("#pProject").value.trim()||"โครงการใหม่",project:$("#pProject").value.trim(),location:$("#pLoc").value.trim(),company:$("#pComp").value.trim(),startDate:$("#pStart").value,timeIn:$("#pIn").value,timeOut:$("#pOut").value,hoursPerDay:+$("#pHrs").value||8,otRate:+$("#pOT").value||1.5,thresh:+$("#pTh").value||0.5,preparer:$("#pPrep").value.trim()});
-    try{await saveP(p);closeSheet();matcherDirty=true;if(n)openProject(p.id);else render()}catch(e){toast("บันทึกไม่สำเร็จ ("+(e.message||e)+")")}
+    const name=$("#pName").value.trim();if(!name){toast("กรุณาใส่ชื่อโครงการ");return}
+    if($("#pEnd").value&&$("#pEnd").value<$("#pStart").value){toast("วันสิ้นสุดต้องอยู่หลังวันเริ่ม");return}
+    Object.assign(p,{name,work:$("#pWork").value.trim(),location:$("#pLoc").value.trim(),owner:$("#pOwner").value.trim(),supervisor:$("#pSup").value.trim(),company:$("#pComp").value.trim(),startDate:$("#pStart").value,endDate:$("#pEnd").value});delete p.project;
+    try{await saveP(p);closeSheet();if(n)openProject(p.id);else render()}catch(e){toast("บันทึกไม่สำเร็จ ("+(e.message||e)+")")}
   };
   if(!n)sh.querySelector("#pDel").onclick=async()=>{if(!await ask(`ลบโครงการ “${p.name}” พร้อมการลงเวลาและบันทึกประจำวันทั้งหมด? (ทะเบียนคนงานยังอยู่) ย้อนกลับไม่ได้ — แนะนำสำรองข้อมูลก่อน`,"ลบถาวร"))return;
     for(const [s,arr] of [["att",S.att],["logs",S.logs],["weeks",S.weeks]])for(const x of arr)await DB.del(s,x.id);
     for(const w of S.workers.filter(w=>w.site===p.id)){w.site="";await saveW(w)}
     await DB.del("projects",p.id);S.projects=S.projects.filter(x=>x.id!==p.id);closeSheet();S.pid=null;render()};
+}
+
+/* ================= app-wide settings (pay rules, scan) ================= */
+const CFG={id:"_cfg",kind:"cfg",timeIn:"08:00",timeOut:"17:00",hoursPerDay:8,otRate:1.5,thresh:0.5,preparer:""};
+async function loadCfg(all){const c=all.find(x=>x.id==="_cfg");if(c)Object.assign(CFG,c);else{const old=all.find(x=>x.otRate||x.timeIn);if(old)for(const k of ["timeIn","timeOut","hoursPerDay","otRate","thresh","preparer"])if(old[k]!=null&&old[k]!=="")CFG[k]=old[k]}}
+function editSettings(){
+  const c=CFG;
+  const sh=openSheet(`<h2>${I("gear",24)} ตั้งค่าการคิดค่าแรง</h2>
+   <div class="row">${fld("cIn","เวลาเข้างานปกติ",c.timeIn,"time")}${fld("cOut","เวลาเลิกงานปกติ",c.timeOut,"time")}</div>
+   <div class="row">${fld("cHrs","ชั่วโมงทำงาน/วัน (ใช้คิดค่า OT)",c.hoursPerDay,"number","8",'step="0.5"')}${fld("cOT","อัตรา OT (เท่าของค่าแรงต่อชั่วโมง)",c.otRate,"number","1.5",'step="0.05"')}</div>
+   <div class="fld"><label>ความเข้มงวดในการจดจำใบหน้า</label><select id="cTh">${[[0.45,"เข้มงวด (ลดการจำผิดคน)"],[0.5,"ปกติ (แนะนำ)"],[0.55,"หลวม (จำง่ายขึ้น)"]].map(([v,l])=>`<option value="${v}" ${+c.thresh===v?"selected":""}>${l}</option>`).join("")}</select></div>
+   ${micField("cPrep","ชื่อผู้จัดทำรายงาน (ลงในช่องลงนาม PDF)",c.preparer,false)}
+   <p class="hint">ใช้กับทุกโครงการ • ค่า OT ต่อชั่วโมง = ค่าแรงต่อวัน ÷ ชั่วโมงทำงาน × อัตรา OT (เช่น 400 ÷ 8 × 1.5 = 75 บาท/ชม.) — กำหนดเป็นรายคนได้ในทะเบียนคนงาน • ชั่วโมง OT ปัดลงทีละ 30 นาที • ตัวเลขสีส้ม = เข้างานหลังเวลาปกติ</p>
+   <div class="acts"><span class="sp"></span><button class="btn" id="cC">ยกเลิก</button><button class="btn pri" id="cS">บันทึก</button></div>`);
+  sh.querySelector("#cC").onclick=closeSheet;
+  sh.querySelector("#cS").onclick=async()=>{Object.assign(CFG,{timeIn:$("#cIn").value||"08:00",timeOut:$("#cOut").value||"17:00",hoursPerDay:+$("#cHrs").value||8,otRate:+$("#cOT").value||1.5,thresh:+$("#cTh").value||0.5,preparer:$("#cPrep").value.trim()});
+    await DB.put("projects",clone(CFG));matcherDirty=true;closeSheet();render();toast("บันทึกแล้ว",1200)};
 }
 
 /* ================= worker register / edit ================= */
@@ -845,7 +864,7 @@ async function importBackup(file){
     toast("กำลังนำเข้า…",20000);
     for(const [id,d] of Object.entries(j.photos||{})){const b=await (await fetch(d)).blob();await DB.put("photos",b,id)}
     for(const s of STORES)for(const x of j[s]||[])await DB.put(s,x);
-    S.projects=await DB.all("projects");await loadWorkers();if(S.pid)await loadProject(S.pid);render();toast("นำเข้าเรียบร้อย");
+    {const all=await DB.all("projects");await loadCfg(all);S.projects=all.filter(x=>x.id!=="_cfg")}await loadWorkers();if(S.pid)await loadProject(S.pid);render();toast("นำเข้าเรียบร้อย");
   }catch(e){toast("นำเข้าไม่สำเร็จ: "+(e.message||e),4000)}
 }
 
@@ -934,12 +953,13 @@ async function buildWeekPdf(mon,o,prog){
       txt(ctx,title,PW/2,M+0.5,6,700,NAVY,"center");
       txt(ctx,`รอบที่ ${no}  •  ${thLong(mon)} – ${thLong(sun)}`,PW/2,M+9,3.7,600,GOLD,"center");
       rect(ctx,M,M+19,TW,0.6,GOLD);
-      const info=[["โครงการ",p.project||p.name],["สถานที่",p.location],["ผู้รับจ้าง",p.company]];
-      info.forEach(([k,v],i)=>{txt(ctx,k,M+1,M+21.5+i*5,3.4,700,NAVY);txt(ctx,": "+(v||"-"),M+20,M+21.5+i*5,3.4,400)});
-      txt(ctx,"วันที่ออกรายงาน "+thDate(todayISO()),PW-M-1,M+21.5,3.4,600,"#1b2133","right");
-      txt(ctx,"เวลาทำงานปกติ "+(p.timeIn||"08:00")+" – "+(p.timeOut||"17:00")+" น.  •  OT × "+(p.otRate||1.5),PW-M-1,M+26.5,3.2,400,"#555","right");
-    });return M+38}
-    doc.add(ctx=>{drawLogo(ctx,logo,M,M,10);txt(ctx,title,PW/2,M,4.4,700,NAVY,"center");txt(ctx,`${p.project||p.name||""}  •  รอบที่ ${no}  (${thDate(mon)} – ${thDate(sun)})`,PW/2,M+6,3.1,400,"#555","center");rect(ctx,M,M+11.5,TW,0.35,GOLD)});
+      const L=[["โครงการ",p.name],["งาน",p.work||p.project],["ที่อยู่",(p.location||"").replace(/\n/g," ")],["ระยะเวลาสัญญา",(p.startDate?thDate(p.startDate):"-")+" – "+(p.endDate?thDate(p.endDate):"-")+(p.startDate&&p.endDate?`  (${dayDiff(p.startDate,p.endDate)+1} วัน)`:"")]];
+      const R=[["เจ้าของงาน",p.owner],["ผู้ควบคุมงาน",p.supervisor],["ผู้รับจ้าง",p.company],["วันที่ออกรายงาน",thDate(todayISO())+"   (เวลาปกติ "+CFG.timeIn+"–"+CFG.timeOut+" น. • OT × "+CFG.otRate+")"]];
+      const cw=TW/2;
+      L.forEach(([k,v],i)=>{txt(ctx,k,M+1,M+21.5+i*4.7,3.3,700,NAVY);txt(ctx,fit(ctx,": "+(v||"-"),cw-30,3.3),M+27,M+21.5+i*4.7,3.3,400)});
+      R.forEach(([k,v],i)=>{txt(ctx,k,M+cw+4,M+21.5+i*4.7,3.3,700,NAVY);txt(ctx,fit(ctx,": "+(v||"-"),cw-32,3.3),M+cw+30,M+21.5+i*4.7,3.3,400)});
+    });return M+42}
+    doc.add(ctx=>{drawLogo(ctx,logo,M,M,10);txt(ctx,title,PW/2,M,4.4,700,NAVY,"center");txt(ctx,`${p.name||""}${p.work?" – "+p.work:""}  •  รอบที่ ${no}  (${thDate(mon)} – ${thDate(sun)})`,PW/2,M+6,3.1,400,"#555","center");rect(ctx,M,M+11.5,TW,0.35,GOLD)});
     return M+15;
   };
   const doc=new Doc(PW,PH,header);
@@ -992,7 +1012,7 @@ async function buildWeekPdf(mon,o,prog){
       rect(ctx,M+2,y+33,bw-4,6.2,"#e8f6ee");txt(ctx,"รวมค่าแรงรอบนี้",M+4,y+34,3.6,700,"#1f8a4c");txt(ctx,fmt(sm.tot.t)+" บาท",M+bw-4,y+34,3.8,700,"#1f8a4c","right");
       txt(ctx,`สะสมเดือน${TH_MF[+ym.slice(5)-1]} (ถึง ${thDate(sun)})`,M+3,y+40.6,2.9,400,"#555");txt(ctx,fmt(moT.t)+" บาท",M+bw-3,y+40.6,2.9,600,"#1b2133","right");
       txt(ctx,`สะสมทั้งโครงการ (ตั้งแต่ ${thDate(projStart())})`,M+3,y+44.2,2.9,400,"#555");txt(ctx,fmt(alT.t)+" บาท",M+bw-3,y+44.2,2.9,600,"#1b2133","right");
-      if(o.sig){const sx=M+bw+5,sw=(TW-bw-5-8)/3;[["ผู้จัดทำ",p.preparer],["ผู้ตรวจสอบ",""],["ผู้อนุมัติ",""]].forEach(([role,nm],i)=>{const bx=sx+i*(sw+4);rect(ctx,bx,y,sw,48,null,GRID);
+      if(o.sig){const sx=M+bw+5,sw=(TW-bw-5-8)/3;[["ผู้จัดทำ",CFG.preparer],["ผู้ควบคุมงาน",p.supervisor],["ผู้อนุมัติ",""]].forEach(([role,nm],i)=>{const bx=sx+i*(sw+4);rect(ctx,bx,y,sw,48,null,GRID);
         txt(ctx,role,bx+sw/2,y+2.5,3.4,700,NAVY,"center");txt(ctx,"ลงชื่อ .......................................",bx+sw/2,y+20,3.1,400,"#333","center");
         txt(ctx,nm?`( ${nm} )`:"(.......................................)",bx+sw/2,y+27,3.1,400,"#333","center");txt(ctx,"วันที่ ......../......../........",bx+sw/2,y+36,3,400,"#333","center")})}
     });doc.y+=50}
@@ -1053,7 +1073,7 @@ function makePdf(jpgs,w,h,wPt,hPt){
 (async function boot(){
   await DB.init();try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
   if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
-  S.projects=await DB.all("projects");await loadWorkers();
+  {const all=await DB.all("projects");await loadCfg(all);S.projects=all.filter(x=>x.id!=="_cfg")}await loadWorkers();
   render();
   // preload the face models in the background so the first scan is quick
   setTimeout(()=>ensureFace().catch(()=>{}),1500);
