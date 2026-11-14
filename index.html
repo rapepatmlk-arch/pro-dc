@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="DC ลงเวลา">
+<meta http-equiv="Cache-Control" content="no-cache">
+<link rel="apple-touch-icon" href="logo.jpg">
+<title>DC Time – PRO-CON</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#1f2f6b; --navy2:#2c4a9a; --gold:#b48a55; --green:#1e4d2b;
+  --bg:#f3f4f8; --card:#fff; --line:#dfe3ec; --ink:#1b2133; --mute:#6b7387;
+  --ok:#1f8a4c; --okbg:#e5f5ec; --wait:#c46a12; --waitbg:#fdf0e2; --red:#c0392b;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Sarabun,"Thonburi",system-ui,sans-serif;font-size:17px}
+button{font-family:inherit;font-size:inherit;cursor:pointer}
+input,textarea,select{font-family:inherit;font-size:17px}
+.top{position:sticky;top:0;z-index:20;background:linear-gradient(90deg,var(--navy),var(--navy2));color:#fff;display:flex;align-items:center;gap:12px;padding:10px 16px;box-shadow:0 2px 10px #0003}
+.top .logos img{height:40px;background:#fff;border-radius:8px;padding:3px;display:block}
+.top h1{font-size:19px;margin:0;font-weight:700;line-height:1.2}
+.top small{display:block;font-weight:400;opacity:.8;font-size:13px}
+.top .sp{flex:1}
+.tbtn{background:#ffffff22;color:#fff;border:1px solid #ffffff44;border-radius:10px;padding:8px 14px}
+.wrap{max-width:1200px;margin:0 auto;padding:16px 16px 130px}
+.banner{background:#fff6d9;border:1px solid #f0d78a;color:#7a5a00;border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:15px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.banner.blue{background:#e8ecf6;border-color:#c5cee6;color:var(--navy)}
+.banner .sp{flex:1}
+.ico{flex:none;vertical-align:-3px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.pcard{background:var(--card);border-radius:16px;padding:18px;border:1px solid var(--line);box-shadow:0 2px 6px #0000000a;text-align:left}
+.pcard h3{margin:0 0 6px;font-size:19px;color:var(--navy)}
+.pcard p{margin:2px 0;color:var(--mute);font-size:14px}
+.pcard .stat{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.pnew{border:2px dashed #b8c0d6;background:transparent;color:var(--navy);font-weight:700;display:flex;align-items:center;justify-content:center;min-height:130px;font-size:19px}
+.chip{display:inline-block;border-radius:999px;padding:2px 10px;font-size:13px;font-weight:600;white-space:nowrap}
+.chip.ok{background:var(--okbg);color:var(--ok)} .chip.wait{background:var(--waitbg);color:var(--wait)} .chip.all{background:#e8ecf6;color:var(--navy)} .chip.red{background:#fdecea;color:var(--red)} .chip.gray{background:#eceef2;color:#6b7387}
+.phead{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:14px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.phead .info{flex:1;min-width:260px;font-size:15px;line-height:1.55}
+.phead .info b{display:inline-block;min-width:96px;color:var(--navy)}
+.tabs{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap}
+.tabs button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 18px;color:var(--mute);display:inline-flex;align-items:center;gap:6px}
+.tabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.tabs.sm button{padding:6px 14px;font-size:15px}
+.ibtn{display:inline-flex;align-items:center;gap:6px;background:#fff;border-radius:8px;padding:6px 12px;color:var(--navy);border:1px solid var(--line)}
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:15;background:#fffffff2;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn{border:none;border-radius:12px;padding:13px 18px;font-weight:700;background:#e8ecf6;color:var(--navy);display:inline-flex;align-items:center;gap:8px;justify-content:center}
+.btn.pri{background:var(--navy);color:#fff}
+.btn.big{font-size:19px;padding:14px 26px}
+.btn.gold{background:var(--gold);color:#fff}
+.btn.okb{background:var(--ok);color:#fff}
+.btn.del{background:#fdecea;color:var(--red)}
+.btn.sm{padding:8px 12px;font-size:15px;border-radius:10px}
+.btn:disabled{opacity:.5}
+.empty-state{text-align:center;color:var(--mute);padding:44px 10px}
+.empty-state .big{color:#9aa7c7;margin-bottom:6px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:14px}
+.card h3{margin:0 0 10px;color:var(--navy);font-size:18px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card h3 .sp{flex:1}
+/* day nav + mode buttons */
+.dnav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.dnav input{border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff}
+.dnav .lbl{font-weight:700;color:var(--navy);font-size:18px}
+.modes{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+@media (max-width:700px){.modes{grid-template-columns:repeat(2,1fr)}}
+.mbtn{border:none;border-radius:16px;padding:14px 10px;color:#fff;font-weight:700;font-size:18px;display:flex;flex-direction:column;align-items:center;gap:4px;box-shadow:0 3px 10px #0002}
+.mbtn small{font-weight:400;font-size:14px;opacity:.9}
+.mbtn .mi{width:46px;height:46px;border-radius:50%;background:#ffffff2a;display:flex;align-items:center;justify-content:center}
+/* tables */
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;border:1px solid var(--line);background:#fff}
+table.t{border-collapse:collapse;width:100%;font-size:15px}
+table.t th{background:var(--navy);color:#fff;font-weight:600;padding:8px 6px;text-align:center;white-space:nowrap;font-size:14px}
+table.t td{border-top:1px solid var(--line);padding:6px;text-align:center;white-space:nowrap}
+table.t td.l,table.t th.l{text-align:left}
+table.t td.r,table.t th.r{text-align:right}
+table.t tr.click{cursor:pointer}
+table.t tr.click:active{background:#f1f4fb}
+table.t tr.tot td{background:#e8ecf6;font-weight:700;color:var(--navy)}
+table.t tr.off td{color:#a3aaba}
+table.t td.pres{background:#eef8f2}
+table.t .tm{font-size:13px;line-height:1.25}
+table.t .ot{color:var(--navy2);font-weight:600;font-size:12px}
+.late{color:var(--wait);font-weight:700}
+.av{width:42px;height:42px;border-radius:50%;object-fit:cover;background:#dde2ec;display:block;margin:auto}
+.av.lg{width:72px;height:72px}
+.nm{font-weight:600}
+.sub{color:var(--mute);font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:14px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.stat .k{color:var(--mute);font-size:14px}
+.stat .v{font-size:28px;font-weight:700;color:var(--navy);line-height:1.2}
+.stat .s{font-size:13px;color:var(--mute)}
+.stat.hl{background:linear-gradient(135deg,var(--navy),var(--navy2));border:none}
+.stat.hl .k,.stat.hl .s{color:#ffffffcc}.stat.hl .v{color:#fff}
+.wcard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px;display:flex;gap:12px;align-items:center;text-align:left}
+.wcard.off{opacity:.55}
+.wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.wnew{border:2px dashed #b8c0d6;background:transparent;color:var(--navy);font-weight:700;justify-content:center;min-height:96px}
+/* logs */
+.log{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:12px;cursor:pointer}
+.log h4{margin:0 0 6px;color:var(--navy);font-size:17px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.log p{margin:4px 0;white-space:pre-wrap;font-size:15px}
+.thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.thumbs img{width:96px;height:72px;object-fit:cover;border-radius:8px;background:#e7eaf2}
+/* sheet */
+.ov{position:fixed;inset:0;background:#0b1230aa;z-index:50;display:flex;align-items:flex-end;justify-content:center}
+@media (min-width:700px){.ov{align-items:center}}
+.sheet{background:#fff;width:100%;max-width:760px;max-height:94vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom))}
+@media (min-width:700px){.sheet{border-radius:20px}}
+.sheet h2{margin:0 0 12px;color:var(--navy);font-size:21px;display:flex;align-items:center;gap:10px}
+.fld{margin-bottom:14px}
+.fld label{display:block;font-weight:600;color:var(--navy);margin-bottom:5px;font-size:15px}
+.mic-row{display:flex;gap:8px;align-items:stretch}
+.mic-row input,.mic-row textarea,.fld input,.fld select,.fld textarea{flex:1;width:100%;border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;background:#fbfcfe;color:var(--ink)}
+textarea{min-height:84px;resize:vertical}
+.mic{flex:none;width:50px;height:50px;align-self:flex-start;border:none;border-radius:50%;background:linear-gradient(145deg,var(--navy2),var(--navy));color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px #1f2f6b40;transition:transform .15s}
+.mic:active{transform:scale(.92)}
+.mic.on{background:linear-gradient(145deg,#e5533d,#c0392b);animation:ring 1.3s infinite}
+@keyframes ring{0%{box-shadow:0 0 0 0 #c0392b80}70%{box-shadow:0 0 0 12px #c0392b00}100%{box-shadow:0 0 0 0 #c0392b00}}
+.partial{color:var(--mute);font-style:italic;font-size:14px}
+.photos{display:flex;gap:8px;flex-wrap:wrap}
+.photos .p{position:relative;width:118px;height:118px;border-radius:10px;overflow:hidden;background:#e7eaf2}
+.photos .p img{width:100%;height:100%;object-fit:cover}
+.photos .p .x{position:absolute;top:4px;right:4px;background:#000b;color:#fff;border:none;border-radius:999px;width:28px;height:28px;font-size:15px;line-height:28px;padding:0}
+.addp{width:118px;height:118px;border-radius:10px;border:2px dashed #b8c0d6;background:#fafbfe;color:var(--navy);font-size:14px;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.addp-ic{width:46px;height:46px;border-radius:50%;background:linear-gradient(145deg,var(--navy2),var(--navy));color:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:4px}
+.regph{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.regbox{border:1.5px dashed #b8c0d6;border-radius:14px;background:#fafbfe;min-height:210px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px;position:relative;overflow:hidden}
+.regbox img{max-width:100%;max-height:230px;border-radius:10px;object-fit:contain}
+.regbox .rb{display:flex;gap:6px}
+.fstat{font-size:14px;margin-top:6px;min-height:20px}
+.fstat.ok{color:var(--ok)}.fstat.bad{color:var(--red)}.fstat.wait{color:var(--wait)}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>*{flex:1;min-width:150px}
+.acts{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.acts .sp{flex:1}
+.opt{display:flex;gap:8px;flex-wrap:wrap}
+.opt label{border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;display:flex;gap:6px;align-items:center;font-weight:400;color:var(--ink);margin:0}
+.opt input{width:auto;flex:none}
+.hint{font-size:13px;color:var(--mute);margin-top:4px}
+.toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:#1b2133;color:#fff;padding:11px 18px;border-radius:12px;z-index:95;font-size:15px;max-width:90vw;text-align:center;box-shadow:0 6px 24px #0005}
+.viewer{position:fixed;inset:0;background:#000e;z-index:90;display:flex;align-items:center;justify-content:center}
+.viewer img{max-width:96vw;max-height:88vh}
+.viewer button{position:absolute;top:16px;right:16px}
+.pages{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin-top:10px}
+.pages img{width:100%;border:1px solid var(--line);border-radius:6px;box-shadow:0 2px 8px #0002}
+.prog{height:8px;background:#e8ecf6;border-radius:999px;overflow:hidden;margin-top:10px}
+.prog i{display:block;height:100%;background:var(--navy);width:0;transition:width .2s}
+.wlist{display:flex;flex-direction:column;gap:6px;max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:6px}
+.wlist label{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:10px;font-weight:400;color:var(--ink);margin:0}
+.wlist label:active{background:#f1f4fb}
+.wlist input{width:22px;height:22px;flex:none}
+.wlist img{width:40px;height:40px;border-radius:50%;object-fit:cover;background:#dde2ec;flex:none}
+.wlist .grow{flex:1}
+.wlist button{display:flex;align-items:center;gap:10px;border:none;background:none;text-align:left;padding:6px 8px;border-radius:10px;width:100%}
+.wlist button:active{background:#f1f4fb}
+/* scanner */
+.scan{position:fixed;inset:0;z-index:45;background:#0b1230;color:#fff;display:flex;flex-direction:column}
+.scan-top{display:flex;align-items:center;gap:10px;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));flex-wrap:wrap}
+.scan-top .seg{display:flex;background:#ffffff14;border-radius:12px;padding:3px;gap:3px;flex-wrap:wrap}
+.scan-top .seg button{border:none;background:none;color:#fff;padding:8px 14px;border-radius:9px;font-weight:600}
+.scan-top .seg button.on{background:#fff;color:var(--navy)}
+.scan-top .clk{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.scan-top .sp{flex:1}
+.scan-main{flex:1;display:flex;min-height:0;gap:10px;padding:0 10px}
+@media (max-width:820px){.scan-main{flex-direction:column}}
+.stage{flex:1;position:relative;background:#000;border-radius:14px;overflow:hidden;min-height:200px}
+.stage video,.stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.stage canvas{display:none}
+.stage .msg{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:#000a;padding:6px 14px;border-radius:999px;font-size:15px;white-space:nowrap;max-width:94%;overflow:hidden;text-overflow:ellipsis}
+.stage .guide{position:absolute;left:4%;right:4%;top:18%;bottom:30%;border:2px dashed #ffffff55;border-radius:16px;pointer-events:none}
+.side{width:330px;display:flex;flex-direction:column;background:#ffffff0d;border-radius:14px;min-height:0}
+@media (max-width:820px){.side{width:auto;max-height:34vh}}
+.side h3{margin:0;padding:10px 12px;font-size:16px;display:flex;align-items:center;gap:8px}
+.res{flex:1;overflow:auto;padding:0 8px 8px;display:flex;flex-direction:column;gap:6px}
+.ri{display:flex;align-items:center;gap:8px;background:#ffffff12;border-radius:12px;padding:6px 8px}
+.ri img{width:46px;height:46px;border-radius:10px;object-fit:cover;flex:none;background:#333}
+.ri .g{flex:1;min-width:0}
+.ri .g b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ri .g span{font-size:13px;opacity:.8}
+.ri.unk{background:#c46a1233;cursor:pointer}
+.ri .x{background:#ffffff22;border:none;color:#fff;border-radius:999px;width:30px;height:30px;flex:none}
+.scan-bar{display:flex;gap:10px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));flex-wrap:wrap;align-items:center;justify-content:center}
+.scan-bar .btn{background:#ffffff1c;color:#fff}
+.scan-bar .btn.shot{background:#fff;color:var(--navy);font-size:20px;padding:15px 30px}
+.scan-bar .btn.save{background:var(--ok)}
+.scan-bar .btn.on{background:var(--gold)}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logos"><img src="logo.jpg" alt="PRO-CON"></div>
+  <div><h1 id="topTitle">ลงเวลาแรงงานรายวัน (DC)</h1><small id="topSub">PRO CONSTRUCTION & DESIGN</small></div>
+  <div class="sp"></div>
+  <button class="tbtn" id="backBtn" style="display:none">‹ โครงการทั้งหมด</button>
+</div>
+<div class="wrap" id="main"><div class="empty-state">กำลังเปิดแอป…</div></div>
+<div class="bar" id="bar" style="display:none"></div>
+<input type="file" id="camIn" accept="image/*" capture="environment" hidden>
+<input type="file" id="selfIn" accept="image/*" capture="user" hidden>
+<input type="file" id="libIn" accept="image/*" multiple hidden>
+<div id="layer"></div>
+
+<script>
+"use strict";
+const APP_VER="1.0";
+const svgI=(d,s=18)=>`<svg class="ico" viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const P={
+  cam:'<path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.8l1.4-2h6.6l1.4 2h1.8A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.6"/>',
+  img:'<rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m21 15-4.5-4.5L7 20"/>',
+  pdf:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>',
+  scan:'<path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><circle cx="9.5" cy="10" r=".9"/><circle cx="14.5" cy="10" r=".9"/><path d="M9.5 14.5c1.4 1.1 3.6 1.1 5 0"/>',
+  users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/>',
+  uplus:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M19 8v6M16 11h6"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  login:'<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/>',
+  logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
+  moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+  money:'<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5v5M18 9.5v5"/>',
+  book:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  pen:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  trash:'<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/>',
+  down:'<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 19h14"/>',
+  up:'<path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 19h14"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/>',
+  phone:'<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18h2"/>',
+  chevL:'<path d="m15 6-6 6 6 6"/>', chevR:'<path d="m9 6 6 6-6 6"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  flip:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+  lock:'<rect x="4.5" y="11" width="15" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/>',
+  hand:'<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12"/><path d="M11 11.5V4a1.5 1.5 0 0 1 3 0v7.5"/><path d="M14 11.5V6a1.5 1.5 0 0 1 3 0v8a7 7 0 0 1-7 7h-.5a6 6 0 0 1-5-2.7L3 15.5a1.6 1.6 0 0 1 2.6-1.8L8 16"/>',
+  play:'<path d="M6 4l14 8-14 8z"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+};
+const I=(k,s)=>svgI(P[k],s);
+const MODES={
+  in:{t:"เข้างาน",ico:"login",c:"linear-gradient(145deg,#2fa565,#1f8a4c)",solid:"#1f8a4c"},
+  out:{t:"เลิกงาน",ico:"logout",c:"linear-gradient(145deg,#e5533d,#c0392b)",solid:"#c0392b"},
+  otIn:{t:"เข้า OT",ico:"moon",c:"linear-gradient(145deg,#3b5fc0,#1f2f6b)",solid:"#2c4a9a"},
+  otOut:{t:"ออก OT",ico:"logout",c:"linear-gradient(145deg,#c9a06a,#a77a42)",solid:"#a77a42"},
+};
+const MK=["in","out","otIn","otOut"];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const clone=o=>JSON.parse(JSON.stringify(o));
+const pad2=n=>String(n).padStart(2,"0");
+const ymd=d=>d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate());
+const todayISO=()=>ymd(new Date());
+const parse=iso=>{const [y,m,d]=iso.split("-").map(Number);return new Date(y,m-1,d)};
+const addDays=(iso,n)=>{const d=parse(iso);d.setDate(d.getDate()+n);return ymd(d)};
+const dayDiff=(a,b)=>Math.round((parse(b)-parse(a))/864e5);
+const monday=iso=>{const d=parse(iso);return addDays(iso,-((d.getDay()+6)%7))};
+const hmNow=()=>{const d=new Date();return pad2(d.getHours())+":"+pad2(d.getMinutes())};
+const mins=s=>{if(!s)return null;const [h,m]=s.split(":").map(Number);return h*60+m};
+const TH_M=["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+const TH_MF=["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+const TH_D=["อา.","จ.","อ.","พ.","พฤ.","ศ.","ส."];
+const TH_DF=["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์"];
+const thDate=iso=>{if(!iso)return"";const [y,m,d]=iso.split("-").map(Number);return d+"/"+m+"/"+(y+543)};
+const thShort=iso=>{const d=parse(iso);return d.getDate()+" "+TH_M[d.getMonth()]};
+const thLong=iso=>{const d=parse(iso);return "วัน"+TH_DF[d.getDay()]+"ที่ "+d.getDate()+" "+TH_MF[d.getMonth()]+" "+(d.getFullYear()+543)};
+const thMonth=ym=>{const [y,m]=ym.split("-").map(Number);return TH_MF[m-1]+" "+(y+543)};
+const fmt=n=>(Math.round((n||0)*100)/100).toLocaleString("en-US",{maximumFractionDigits:2});
+const fmt0=n=>Math.round(n||0).toLocaleString("en-US");
+const weekLabel=mon=>{const s=addDays(mon,6);const a=parse(mon),b=parse(s);return a.getMonth()===b.getMonth()?`${a.getDate()} – ${b.getDate()} ${TH_M[b.getMonth()]} ${b.getFullYear()+543}`:`${thShort(mon)} – ${thShort(s)} ${b.getFullYear()+543}`};
+
+let toastT;
+function toast(msg,ms=2600){let t=$(".toast");if(!t){t=document.createElement("div");t.className="toast";document.body.appendChild(t)}t.textContent=msg;t.style.display="block";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",ms)}
+
+/* ================= storage (IndexedDB on this device) ================= */
+const STORES=["projects","workers","att","logs","weeks"];
+const DB={mem:{},urls:new Map(),
+  async init(){STORES.concat("photos").forEach(s=>this.mem[s]=new Map());
+    try{this.idb=await new Promise((res,rej)=>{const r=indexedDB.open("pro-dc",1);r.onupgradeneeded=()=>{const d=r.result;STORES.forEach(s=>d.createObjectStore(s,{keyPath:"id"}));d.createObjectStore("photos")};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}catch(e){this.idb=null}},
+  tx(store,mode,fn){return new Promise((res,rej)=>{const t=this.idb.transaction(store,mode);const out=fn(t.objectStore(store));t.oncomplete=()=>res(out&&out.result);t.onerror=()=>rej(t.error)})},
+  async all(s){if(!this.idb)return[...this.mem[s].values()].map(clone);return await this.tx(s,"readonly",o=>o.getAll())||[]},
+  async put(s,v,k){if(!this.idb){this.mem[s].set(k??v.id,v);return}await this.tx(s,"readwrite",o=>k!==undefined?o.put(v,k):o.put(v))},
+  async del(s,k){if(!this.idb){this.mem[s].delete(k);return}await this.tx(s,"readwrite",o=>o.delete(k))},
+  async photo(blob){const id="ph_"+uid();await this.put("photos",blob,id);return id},
+  async blob(id){if(!this.idb)return this.mem.photos.get(id);return await this.tx("photos","readonly",o=>o.get(id))},
+  async src(id){if(!id)return"";if(this.urls.has(id))return this.urls.get(id);const b=await this.blob(id);if(!b)return"";const u=URL.createObjectURL(b);this.urls.set(id,u);return u}
+};
+
+const S={projects:[],pid:null,tab:"today",date:todayISO(),sumTab:"week",weekOf:monday(todayISO()),month:todayISO().slice(0,7),workers:[],att:[],logs:[],weeks:[]};
+const proj=()=>S.projects.find(p=>p.id===S.pid);
+function upsert(arr,o){const i=arr.findIndex(x=>x.id===o.id);if(i<0)arr.push(o);else arr[i]=o}
+async function saveP(p){p.updatedAt=Date.now();await DB.put("projects",clone(p));upsert(S.projects,p)}
+async function saveW(w){w.updatedAt=Date.now();await DB.put("workers",clone(w));upsert(S.workers,w);matcherDirty=true}
+async function saveA(r){r.updatedAt=Date.now();await DB.put("att",clone(r));upsert(S.att,r)}
+async function saveL(l){l.updatedAt=Date.now();await DB.put("logs",clone(l));upsert(S.logs,l)}
+async function saveWk(w){await DB.put("weeks",clone(w));upsert(S.weeks,w)}
+async function loadProject(pid){
+  const f=async s=>(await DB.all(s)).filter(x=>x.pid===pid);
+  [S.workers,S.att,S.logs,S.weeks]=await Promise.all(["workers","att","logs","weeks"].map(f));matcherDirty=true;
+}
+const sortedWorkers=()=>[...S.workers].sort((a,b)=>(a.no||0)-(b.no||0)||(a.createdAt||0)-(b.createdAt||0));
+const W=id=>S.workers.find(w=>w.id===id);
+const recId=(date,wid)=>S.pid+"|"+date+"|"+wid;
+const getRec=(date,wid)=>S.att.find(r=>r.id===recId(date,wid));
+function newRec(date,w){return {id:recId(date,w.id),pid:S.pid,date,wid:w.id,wage:+w.wage||0,otHr:w.otHr||"",in:"",out:"",otIn:"",otOut:"",dayF:"",otH:"",note:"",faces:{},createdAt:Date.now()}}
+const weekRec=mon=>S.weeks.find(w=>w.id===S.pid+"|"+mon);
+const isClosed=date=>!!weekRec(monday(date))?.closedAt;
+
+/* ================= pay rules ================= */
+function dayF(r){if(r.dayF!==""&&r.dayF!=null)return +r.dayF;return (r.in||r.out)?1:0}
+function otH(r){if(r.otH!==""&&r.otH!=null)return +r.otH;if(!r.otIn||!r.otOut)return 0;let m=mins(r.otOut)-mins(r.otIn);if(m<0)m+=1440;return Math.floor(m/30)/2}
+function otRateHr(r){const p=proj()||{};if(r.otHr!==""&&r.otHr!=null&&+r.otHr>0)return +r.otHr;return (+r.wage||0)/(+p.hoursPerDay||8)*(+p.otRate||1.5)}
+function pay(r){const d=dayF(r),h=otH(r);const n=(+r.wage||0)*d,o=h*otRateHr(r);return {d,h,n,o,t:n+o}}
+function summarize(recs){
+  const by=new Map();const tot={d:0,h:0,n:0,o:0,t:0,people:0};
+  for(const r of recs){const p=pay(r);let x=by.get(r.wid);if(!x){x={wid:r.wid,d:0,h:0,n:0,o:0,t:0,recs:[]};by.set(r.wid,x)}
+    x.d+=p.d;x.h+=p.h;x.n+=p.n;x.o+=p.o;x.t+=p.t;x.recs.push(r);tot.d+=p.d;tot.h+=p.h;tot.n+=p.n;tot.o+=p.o;tot.t+=p.t}
+  tot.people=[...by.values()].filter(x=>x.d>0||x.h>0).length;return {by,tot};
+}
+const recsBetween=(a,b)=>S.att.filter(r=>r.date>=a&&r.date<=b);
+function projStart(){const p=proj();const ds=S.att.map(r=>r.date).sort();return p.startDate||(ds[0]||todayISO())}
+const weekNo=mon=>Math.floor(dayDiff(monday(projStart()),mon)/7)+1;
+const isLate=r=>{const p=proj();return r.in&&p.timeIn&&mins(r.in)>mins(p.timeIn)};
+
+/* ================= photos ================= */
+function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src})}
+async function fileToCanvas(file,max=1600){
+  const u=URL.createObjectURL(file);
+  try{const img=await loadImg(u);const s=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
+    const c=document.createElement("canvas");c.width=Math.round(img.naturalWidth*s);c.height=Math.round(img.naturalHeight*s);
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);return c}finally{URL.revokeObjectURL(u)}
+}
+const toBlob=(c,q=0.82)=>new Promise(r=>c.toBlob(r,"image/jpeg",q));
+async function compress(file,max=1600){return await toBlob(await fileToCanvas(file,max))}
+let pickCb=null;
+function pick(src,cb){pickCb=cb;const el=src==="cam"?$("#camIn"):src==="self"?$("#selfIn"):$("#libIn");el.value="";el.click()}
+["#camIn","#selfIn","#libIn"].forEach(s=>$(s).addEventListener("change",e=>{const f=[...e.target.files];if(f.length&&pickCb)pickCb(f);pickCb=null}));
+async function hydrate(root=document){for(const img of root.querySelectorAll("img[data-ph]")){const id=img.dataset.ph;if(!id||img.dataset.done===id)continue;img.dataset.done=id;img.src=await DB.src(id)}}
+function viewPhoto(id){const v=document.createElement("div");v.className="viewer";v.innerHTML=`<img data-ph="${esc(id)}"><button class="btn">✕ ปิด</button>`;v.onclick=()=>v.remove();document.body.appendChild(v);hydrate(v)}
+const avatar=(w,cls="av")=>w&&w.face?`<img class="${cls}" data-ph="${esc(w.face)}">`:`<span class="${cls}" style="display:flex;align-items:center;justify-content:center;color:#8a93aa">${I("users",20)}</span>`;
+
+/* ================= face recognition (face-api, runs on the iPad) ================= */
+const FACE={ready:false,p:null};
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("โหลด "+src+" ไม่ได้"));document.head.appendChild(s)})}
+function ensureFace(onMsg){
+  if(FACE.ready)return Promise.resolve(true);
+  if(!FACE.p)FACE.p=(async()=>{
+    onMsg&&onMsg("กำลังโหลดระบบจดจำใบหน้า… (ครั้งแรกใช้เน็ตประมาณ 13 MB)");
+    if(!window.faceapi)await loadScript("lib/face-api.js");
+    try{await faceapi.tf.setBackend("webgl");await faceapi.tf.ready()}catch(e){}
+    await Promise.all([faceapi.nets.ssdMobilenetv1.loadFromUri("models"),faceapi.nets.faceLandmark68Net.loadFromUri("models"),faceapi.nets.faceRecognitionNet.loadFromUri("models")]);
+    FACE.ready=true;return true;
+  })().catch(e=>{FACE.p=null;throw e});
+  return FACE.p;
+}
+const detOpts=()=>new faceapi.SsdMobilenetv1Options({minConfidence:0.45,maxResults:80});
+async function detectRaw(c){return await faceapi.detectAllFaces(c,detOpts()).withFaceLandmarks().withFaceDescriptors()}
+const iou=(a,b)=>{const x1=Math.max(a.x,b.x),y1=Math.max(a.y,b.y),x2=Math.min(a.x+a.w,b.x+b.w),y2=Math.min(a.y+a.h,b.y+b.h);const i=Math.max(0,x2-x1)*Math.max(0,y2-y1);return i/(a.w*a.h+b.w*b.h-i||1)};
+// whole frame + overlapping tiles, so small faces in a long line-up are still found
+async function detectAll(c,fine=true){
+  const out=[];const push=(d,ox,oy)=>{const b=d.detection.box;const box={x:b.x+ox,y:b.y+oy,w:b.width,h:b.height};const sc=d.detection.score;
+    const dup=out.find(o=>iou(o.box,box)>0.3);if(dup){if(sc>dup.score){dup.box=box;dup.score=sc;dup.desc=d.descriptor}return}out.push({box,score:sc,desc:d.descriptor})};
+  (await detectRaw(c)).forEach(d=>push(d,0,0));
+  if(fine&&c.width>=1000){
+    const cols=c.width>=1700?3:2, rows=c.height>c.width*0.8?3:2;const tw=c.width/cols*1.35, th=c.height/rows*1.35;
+    for(let i=0;i<cols;i++)for(let j=0;j<rows;j++){
+      const x=Math.max(0,Math.min(c.width-tw,i*c.width/cols-(tw-c.width/cols)/2)),y=Math.max(0,Math.min(c.height-th,j*c.height/rows-(th-c.height/rows)/2));
+      const t=document.createElement("canvas");t.width=Math.round(tw);t.height=Math.round(th);t.getContext("2d").drawImage(c,x,y,tw,th,0,0,t.width,t.height);
+      (await detectRaw(t)).forEach(d=>push(d,x,y));
+    }
+  }
+  return out;
+}
+async function cropFace(c,box,size=220,q=0.85){const m=box.w*0.45;const s=Math.max(box.w,box.h)+2*m;const cx=box.x+box.w/2,cy=box.y+box.h/2;
+  const t=document.createElement("canvas");t.width=t.height=size;const g=t.getContext("2d");g.fillStyle="#ccc";g.fillRect(0,0,size,size);g.drawImage(c,cx-s/2,cy-s/2,s,s,0,0,size,size);return await toBlob(t,q)}
+const descArr=d=>Array.from(d,v=>Math.round(v*1e5)/1e5);
+let matcherDirty=true,matcher=[];
+function getMatcher(){if(matcherDirty){matcher=S.workers.filter(w=>w.active!==false&&w.descs&&w.descs.length).map(w=>({wid:w.id,ds:w.descs.map(a=>Float32Array.from(a))}));matcherDirty=false}return matcher}
+const thresh=()=>+(proj()?.thresh||0.5);
+function bestDist(desc,ds){let m=9;for(const q of ds){const e=faceapi.euclideanDistance(desc,q);if(e<m)m=e}return m}
+function matchFaces(dets){
+  const M=getMatcher(),T=thresh();const pairs=[];
+  dets.forEach((d,i)=>M.forEach(x=>{const m=bestDist(d.desc,x.ds);if(m<T)pairs.push({i,wid:x.wid,m})}));
+  pairs.sort((a,b)=>a.m-b.m);const di=new Map(),wu=new Set();
+  for(const p of pairs){if(di.has(p.i)||wu.has(p.wid))continue;di.set(p.i,p);wu.add(p.wid)}
+  return dets.map((d,i)=>({...d,wid:di.get(i)?.wid||null,dist:di.get(i)?.m??null}));
+}
+function similarWorker(desc,exceptId){const M=getMatcher();let best=null;for(const x of M){if(x.wid===exceptId)continue;const m=bestDist(desc,x.ds);if(m<thresh()&&(!best||m<best.m))best={wid:x.wid,m}}return best}
+
+/* ================= dictation (iPad keyboard mic fallback) ================= */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let srObj=null,srBtn=null;
+function micClick(btn){
+  const input=btn.parentElement.querySelector("input,textarea");
+  if(!SR){input.focus();toast("แตะปุ่ม 🎤 บนแป้นพิมพ์ iPad แล้วพูดได้เลย",3200);return}
+  if(srObj){try{srObj.stop()}catch(e){}if(srBtn===btn)return}
+  const r=new SR();r.lang="th-TH";r.interimResults=true;r.continuous=false;srObj=r;srBtn=btn;
+  const part=input.closest(".fld")?.querySelector(".partial");btn.classList.add("on");
+  r.onresult=e=>{let fin="",tmp="";for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)fin+=t;else tmp+=t}
+    if(part)part.textContent=tmp?"🎙 "+tmp:"";if(fin){const v=input.value;input.value=(v&&!/\s$/.test(v)?v+" ":v)+fin.trim()}};
+  r.onerror=e=>{if(e.error==="not-allowed"||e.error==="service-not-allowed")toast("ใช้ไมค์ในหน้านี้ไม่ได้ — แตะช่องแล้วกดไมค์บนแป้นพิมพ์ iPad แทน",3500)};
+  r.onend=()=>{btn.classList.remove("on");if(part)part.textContent="";if(srObj===r)srObj=null};
+  try{r.start()}catch(e){btn.classList.remove("on");srObj=null;input.focus()}
+}
+const MIC='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/><path d="M8.5 21h7"/></svg>';
+const micField=(id,label,val,multi,ph="",type="text")=>`<div class="fld"><label for="${id}">${label}</label><div class="mic-row">${multi?`<textarea id="${id}" placeholder="${esc(ph)}">${esc(val)}</textarea>`:`<input id="${id}" type="${type}" value="${esc(val)}" placeholder="${esc(ph)}">`}<button type="button" class="mic" aria-label="พูดเพื่อพิมพ์">${MIC}</button></div><div class="partial"></div></div>`;
+const fld=(id,label,val,type="text",ph="",extra="")=>`<div class="fld"><label for="${id}">${label}</label><input id="${id}" type="${type}" value="${esc(val)}" placeholder="${esc(ph)}" ${extra}></div>`;
+document.addEventListener("click",e=>{const b=e.target.closest(".mic");if(b){e.preventDefault();micClick(b)}});
+
+/* ================= dialogs ================= */
+function openSheet(html,onMount,wide){
+  closeSheet();const ov=document.createElement("div");ov.className="ov";ov.innerHTML=`<div class="sheet" ${wide?'style="max-width:980px"':""}>${html}</div>`;
+  ov.addEventListener("click",e=>{if(e.target===ov)closeSheet()});
+  $("#layer").appendChild(ov);onMount&&onMount(ov.firstChild);hydrate(ov);return ov.firstChild;
+}
+function closeSheet(){if(srObj)try{srObj.stop()}catch(e){}$("#layer").innerHTML=""}
+function ask(msg,yes="ยืนยัน",danger=true){return new Promise(res=>{const ov=document.createElement("div");ov.className="ov";ov.style.zIndex=80;ov.innerHTML=`<div class="sheet" style="max-width:460px"><h2>ยืนยัน</h2><p>${esc(msg)}</p><div class="acts"><span class="sp"></span><button class="btn" data-a="0">ยกเลิก</button><button class="btn ${danger?"del":"pri"}" data-a="1">${esc(yes)}</button></div></div>`;ov.onclick=e=>{const a=e.target.dataset.a;if(a!==undefined||e.target===ov){ov.remove();res(a==="1")}};document.body.appendChild(ov)})}
+async function saveFile(blob,filename){
+  try{const f=new File([blob],filename,{type:blob.type});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:filename});return true}}catch(e){if(e&&e.name==="AbortError")return false}
+  const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);return true;
+}
+
+/* ================= views ================= */
+function setTop(){
+  const p=proj();
+  $("#topTitle").textContent=p?(p.name||"โครงการ"):"ลงเวลาแรงงานรายวัน (DC)";
+  $("#topSub").textContent=p?"ลงเวลาแรงงานรายวัน (DC)":"PRO CONSTRUCTION & DESIGN";
+  $("#backBtn").style.display=p?"":"none";
+  const bar=$("#bar");bar.style.display=p?"flex":"none";
+  if(p&&!bar.dataset.on){bar.dataset.on=1;
+    bar.innerHTML=`<button class="btn pri big" id="bScan">${I("scan",24)} สแกนหน้า</button><button class="btn" id="bReg">${I("uplus",22)} ลงทะเบียนคนงาน</button><button class="btn" id="bLog">${I("cam",22)} บันทึกงานวันนี้</button><button class="btn gold" id="bPdf">${I("pdf",22)} สรุปรอบ & PDF</button>`;
+    $("#bScan").onclick=()=>openScanner(suggestMode());$("#bReg").onclick=()=>editWorker(null);$("#bLog").onclick=()=>editLog(todayISO());$("#bPdf").onclick=()=>pdfDialog();
+  }
+  if(!p){bar.dataset.on="";bar.innerHTML=""}
+}
+function suggestMode(){const h=new Date().getHours();if(h<11)return"in";if(h<17)return"out";const p=proj();const t=todayISO();const any=S.att.some(r=>r.date===t&&r.otIn&&!r.otOut);return any?"otOut":(h<18?"out":"otIn")}
+function banner(){return `<div class="banner blue">${I("phone")} ข้อมูลและรูปเก็บไว้ใน iPad เครื่องนี้ — เปิดจากไอคอนบนหน้าจอโฮมทุกครั้ง และกด “สำรองข้อมูล” (หน้าโครงการทั้งหมด) สัปดาห์ละครั้ง</div>`}
+function render(){setTop();if(!S.pid)return renderHome();renderProject()}
+
+async function renderHome(){
+  const all=await DB.all("att");
+  const cards=[...S.projects].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)).map(p=>{const rs=all.filter(r=>r.pid===p.id);let t=0;const save=S.pid;S.pid=p.id;rs.forEach(r=>t+=pay(r).t);S.pid=save;
+    return `<button class="pcard" data-open="${esc(p.id)}"><h3>${esc(p.name||"(ไม่มีชื่อ)")}</h3><p>${esc(p.project||"")}</p><p>เริ่มโครงการ: ${p.startDate?thDate(p.startDate):"-"}</p><div class="stat"><span class="chip all">${p.wcount||0} คนงาน</span><span class="chip ok">ค่าแรงสะสม ฿${fmt0(t)}</span></div></button>`}).join("");
+  $("#main").innerHTML=banner()+`<div class="grid">${cards}<button class="pcard pnew" id="newProj">＋ สร้างโครงการใหม่</button></div>
+  <div class="acts" style="margin-top:18px"><button class="btn" id="bkOut">${I("down")} สำรองข้อมูล (ไฟล์ .json)</button><button class="btn" id="bkIn">${I("up")} นำเข้าข้อมูลสำรอง</button><input type="file" id="bkFile" accept=".json,application/json" hidden></div>
+  <p class="hint" style="margin-top:22px">วิธีใช้: สร้างโครงการ → ลงทะเบียนคนงาน (ถ่ายรูปตัวเต็ม + รูปหน้า, ชื่อ, ค่าแรง) → ทุกเช้าให้คนงานยืนเรียงหน้ากระดาน กด “สแกนหน้า” → เลิกงาน/OT ทำแบบเดียวกัน → เช้าวันจันทร์กด “สรุปรอบ & PDF”</p><p class="hint" style="text-align:right">เวอร์ชัน ${APP_VER}</p>`;
+  $("#newProj").onclick=()=>editProject(null);
+  $("#bkOut").onclick=exportBackup;$("#bkIn").onclick=()=>{$("#bkFile").value="";$("#bkFile").click()};$("#bkFile").onchange=e=>{const f=e.target.files[0];if(f)importBackup(f)};
+  document.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openProject(b.dataset.open));
+}
+async function openProject(id){S.pid=id;S.tab="today";S.date=todayISO();S.weekOf=monday(todayISO());S.month=todayISO().slice(0,7);await loadProject(id);render();window.scrollTo(0,0)}
+$("#backBtn").onclick=()=>{S.pid=null;render()};
+
+function pendingWeek(){const cur=monday(todayISO());const ws=[...new Set(S.att.map(r=>monday(r.date)))].filter(m=>m<cur&&!weekRec(m)?.closedAt).sort();return ws.length?ws[ws.length-1]:null}
+function renderProject(){
+  const p=proj();const t=S.tab;
+  let html="";
+  const pw=pendingWeek();
+  if(pw)html+=`<div class="banner">${I("info")} ยังไม่ได้สรุปรอบที่ ${weekNo(pw)} (${weekLabel(pw)})<span class="sp"></span><button class="btn gold sm" id="doPend">${I("pdf")} สรุป & ออก PDF</button></div>`;
+  html+=`<div class="tabs">${[["today","clock","ลงเวลา"],["workers","users",`คนงาน (${S.workers.filter(w=>w.active!==false).length})`],["sum","money","สรุปค่าแรง"],["logs","book","บันทึกประจำวัน"]].map(([k,ic,l])=>`<button data-tab="${k}" class="${t===k?"on":""}">${I(ic,17)} ${l}</button>`).join("")}<span style="flex:1"></span><button class="ibtn" id="editProj">${I("gear")} ตั้งค่าโครงการ</button></div><div id="tabBody"></div>`;
+  $("#main").innerHTML=html;
+  if(pw)$("#doPend").onclick=()=>pdfDialog(pw);
+  document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{S.tab=b.dataset.tab;render()});
+  $("#editProj").onclick=()=>editProject(p);
+  ({today:renderToday,workers:renderWorkers,sum:renderSum,logs:renderLogs})[t]();
+  hydrate();
+}
+
+/* ---------- tab: today ---------- */
+function renderToday(){
+  const d=S.date,isToday=d===todayISO();
+  const recs=S.att.filter(r=>r.date===d);const rm=new Map(recs.map(r=>[r.wid,r]));
+  const ws=sortedWorkers().filter(w=>w.active!==false||rm.has(w.id));
+  const cnt=k=>recs.filter(r=>r[k]).length;const active=S.workers.filter(w=>w.active!==false).length;
+  const sm=summarize(recs).tot;
+  let h=`<div class="dnav"><button class="ibtn" id="dPrev">${I("chevL")}</button><input type="date" id="dPick" value="${d}"><button class="ibtn" id="dNext">${I("chevR")}</button><span class="lbl">${isToday?"วันนี้ — ":""}${thLong(d)}</span>${isClosed(d)?`<span class="chip gray">${I("lock",13)} ปิดรอบแล้ว</span>`:""}</div>`;
+  h+=`<div class="modes">${MK.map(k=>`<button class="mbtn" data-scan="${k}" style="background:${MODES[k].c}"><span class="mi">${I(MODES[k].ico,26)}</span>สแกน${MODES[k].t}<small>${cnt(k)} / ${k.startsWith("ot")?cnt("otIn")||"-":active} คน</small></button>`).join("")}</div>`;
+  h+=`<div class="card"><h3>${I("users")} รายชื่อการลงเวลา<span class="chip ok">มาทำงาน ${sm.people} คน</span><span class="chip all">ค่าแรงวันนี้ ฿${fmt(sm.t)}</span><span class="sp"></span><button class="btn sm" id="manual">${I("hand")} ลงเวลาด้วยมือ / มาสาย</button></h3>`;
+  if(!ws.length)h+=`<div class="empty-state"><div class="big">${I("uplus",54)}</div>ยังไม่มีคนงาน<br>กด “ลงทะเบียนคนงาน” ด้านล่างเพื่อเริ่ม</div>`;
+  else{h+=`<div class="tw"><table class="t"><tr><th>ที่</th><th>รูป</th><th class="l">ชื่อ</th><th>เข้างาน</th><th>เลิกงาน</th><th>เข้า OT</th><th>ออก OT</th><th>OT ชม.</th><th class="r">ค่าแรง</th></tr>`;
+    ws.forEach((w,i)=>{const r=rm.get(w.id);const pp=r?pay(r):null;
+      h+=`<tr class="click ${r&&(r.in||r.out)?"":"off"}" data-rec="${w.id}"><td>${i+1}</td><td>${avatar(w)}</td><td class="l"><div class="nm">${esc(w.name)}</div><div class="sub">${esc(w.role||"")} ฿${fmt(w.wage)}/วัน</div></td>
+      <td class="${r&&isLate(r)?"late":""}">${r?.in||"–"}</td><td>${r?.out||"–"}</td><td>${r?.otIn||"–"}</td><td>${r?.otOut||(r?.otIn?'<span class="chip wait">ยังไม่ออก</span>':"–")}</td><td>${pp&&pp.h?pp.h:"–"}</td><td class="r">${pp&&pp.t?fmt(pp.t):"–"}${pp&&pp.d===0.5?' <span class="chip wait">½</span>':""}</td></tr>`});
+    h+=`<tr class="tot"><td colspan="3" class="l">รวม</td><td>${cnt("in")}</td><td>${cnt("out")}</td><td>${cnt("otIn")}</td><td>${cnt("otOut")}</td><td>${fmt(sm.h)}</td><td class="r">${fmt(sm.t)}</td></tr></table></div>`}
+  h+=`<p class="hint">แตะที่แถวเพื่อแก้เวลา / ครึ่งวัน / ชม. OT • ตัวสีส้ม = เข้างานหลัง ${esc(proj().timeIn||"08:00")} น.</p></div>`;
+  $("#tabBody").innerHTML=h;
+  const go=n=>{S.date=n;render()};
+  $("#dPrev").onclick=()=>go(addDays(d,-1));$("#dNext").onclick=()=>go(addDays(d,1));$("#dPick").onchange=e=>e.target.value&&go(e.target.value);
+  document.querySelectorAll("[data-scan]").forEach(b=>b.onclick=()=>{if(!isToday)toast("การสแกนจะบันทึกเป็นเวลาปัจจุบัน (วันนี้)",2500);openScanner(b.dataset.scan)});
+  document.querySelectorAll("[data-rec]").forEach(b=>b.onclick=()=>editRec(b.dataset.rec,d));
+  $("#manual").onclick=()=>manualSheet(d);
+}
+
+/* ---------- tab: workers ---------- */
+function renderWorkers(){
+  const ws=sortedWorkers();const tt=summarize(S.att).by;
+  let h=`<div class="wgrid">${ws.map(w=>`<button class="wcard ${w.active===false?"off":""}" data-w="${w.id}">${avatar(w,"av lg")}<div style="flex:1;min-width:0"><div class="nm" style="font-size:18px">${esc(w.name)}</div><div class="sub">${esc(w.role||"แรงงานรายวัน")}</div><div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap"><span class="chip all">฿${fmt(w.wage)}/วัน</span>${w.descs&&w.descs.length?`<span class="chip ok">${I("check",12)} ใบหน้า ${w.descs.length}</span>`:`<span class="chip red">ไม่มีข้อมูลใบหน้า</span>`}${w.active===false?'<span class="chip gray">พักงาน/ออกแล้ว</span>':""}</div><div class="sub" style="margin-top:4px">สะสม ${fmt(tt.get(w.id)?.d||0)} วัน • ฿${fmt0(tt.get(w.id)?.t||0)}</div></div></button>`).join("")}
+  <button class="wcard wnew" id="wAdd">${I("uplus",26)} ลงทะเบียนคนงานใหม่</button></div>`;
+  $("#tabBody").innerHTML=h;
+  $("#wAdd").onclick=()=>editWorker(null);
+  document.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>editWorker(W(b.dataset.w)));
+}
+
+/* ---------- tab: summary ---------- */
+function weekMatrix(mon){
+  const days=[...Array(7)].map((_,i)=>addDays(mon,i));const sun=days[6];
+  const recs=recsBetween(mon,sun);const sm=summarize(recs);
+  const ws=sortedWorkers().filter(w=>sm.by.has(w.id));
+  let h=`<div class="tw"><table class="t"><tr><th>ที่</th><th class="l">ชื่อ</th><th>ค่าแรง</th>${days.map(d=>`<th>${TH_D[parse(d).getDay()]}<br><span style="font-weight:400;font-size:12px">${thShort(d)}</span></th>`).join("")}<th>วัน</th><th>OT ชม.</th><th class="r">ปกติ</th><th class="r">OT</th><th class="r">รวม</th></tr>`;
+  ws.forEach((w,i)=>{const x=sm.by.get(w.id);
+    h+=`<tr><td>${i+1}</td><td class="l nm">${esc(w.name)}</td><td>${fmt(w.wage)}</td>${days.map(d=>{const r=x.recs.find(r=>r.date===d);if(!r)return"<td>–</td>";const p=pay(r);return `<td class="${p.d?"pres":""} click" data-rd="${w.id}|${d}"><div class="tm">${p.d?(p.d===0.5?"½":"✓"):"–"}${r.in?" "+r.in:""}</div>${p.h?`<div class="ot">OT ${p.h}</div>`:""}</td>`}).join("")}<td>${fmt(x.d)}</td><td>${fmt(x.h)}</td><td class="r">${fmt(x.n)}</td><td class="r">${fmt(x.o)}</td><td class="r"><b>${fmt(x.t)}</b></td></tr>`});
+  const dt=days.map(d=>summarize(recs.filter(r=>r.date===d)).tot);
+  h+=`<tr class="tot"><td colspan="3" class="l">รวม</td>${dt.map(t=>`<td><div class="tm">${t.people} คน</div><div class="tm">${fmt0(t.t)}</div></td>`).join("")}<td>${fmt(sm.tot.d)}</td><td>${fmt(sm.tot.h)}</td><td class="r">${fmt(sm.tot.n)}</td><td class="r">${fmt(sm.tot.o)}</td><td class="r">${fmt(sm.tot.t)}</td></tr></table></div>`;
+  if(!ws.length)h=`<div class="empty-state">ยังไม่มีการลงเวลาในรอบนี้</div>`;
+  return {html:h,sm};
+}
+function monthsList(){const ms=[...new Set(S.att.map(r=>r.date.slice(0,7)))].sort();return ms}
+function renderSum(){
+  const today=todayISO(),cur=monday(today);const ym=today.slice(0,7);
+  const wk=summarize(recsBetween(cur,addDays(cur,6))).tot, mo=summarize(S.att.filter(r=>r.date.startsWith(ym))).tot, al=summarize(S.att).tot;
+  let h=`<div class="stats"><div class="stat hl"><div class="k">รอบนี้ (รอบที่ ${weekNo(cur)} • ${weekLabel(cur)})</div><div class="v">฿${fmt(wk.t)}</div><div class="s">${fmt(wk.d)} แรง • OT ${fmt(wk.h)} ชม.</div></div>
+  <div class="stat"><div class="k">เดือน${TH_MF[+ym.slice(5)-1]}</div><div class="v">฿${fmt(mo.t)}</div><div class="s">${fmt(mo.d)} แรง • OT ${fmt(mo.h)} ชม.</div></div>
+  <div class="stat"><div class="k">รวมทั้งโครงการ (ตั้งแต่ ${thDate(projStart())})</div><div class="v">฿${fmt(al.t)}</div><div class="s">${fmt(al.d)} แรง • OT ${fmt(al.h)} ชม.</div></div></div>`;
+  h+=`<div class="tabs sm">${[["week","รายสัปดาห์"],["month","รายเดือน"],["all","ทั้งโครงการ"]].map(([k,l])=>`<button data-st="${k}" class="${S.sumTab===k?"on":""}">${l}</button>`).join("")}</div>`;
+  if(S.sumTab==="week"){
+    const m=S.weekOf;const wr=weekRec(m);const mx=weekMatrix(m);
+    h+=`<div class="card"><h3><button class="ibtn" id="wPrev">${I("chevL")}</button>รอบที่ ${weekNo(m)} • ${weekLabel(m)}<button class="ibtn" id="wNext">${I("chevR")}</button>${wr?.closedAt?`<span class="chip gray">${I("lock",13)} ปิดรอบแล้ว ${thDate(ymd(new Date(wr.closedAt)))}</span>`:m===cur?'<span class="chip ok">รอบปัจจุบัน</span>':'<span class="chip wait">ยังไม่ปิดรอบ</span>'}<span class="sp"></span><button class="btn gold sm" id="wPdf">${I("pdf")} PDF รอบนี้</button></h3>${mx.html}<p class="hint">รอบสัปดาห์ = วันจันทร์ – วันอาทิตย์ • แตะช่องวันเพื่อแก้ไข</p></div>`;
+  }else if(S.sumTab==="month"){
+    const ms=monthsList();
+    h+=`<div class="card"><h3>${I("money")} สรุปรายเดือน</h3><div class="tw"><table class="t"><tr><th class="l">เดือน</th><th>แรงงาน (คน-วัน)</th><th>OT ชม.</th><th class="r">ค่าแรงปกติ</th><th class="r">ค่า OT</th><th class="r">รวม</th></tr>${ms.map(k=>{const t=summarize(S.att.filter(r=>r.date.startsWith(k))).tot;return `<tr class="click" data-m="${k}" ${k===S.month?'style="background:#f1f4fb"':""}><td class="l nm">${thMonth(k)}</td><td>${fmt(t.d)}</td><td>${fmt(t.h)}</td><td class="r">${fmt(t.n)}</td><td class="r">${fmt(t.o)}</td><td class="r"><b>${fmt(t.t)}</b></td></tr>`}).join("")}<tr class="tot"><td class="l">รวมทั้งหมด</td><td>${fmt(al.d)}</td><td>${fmt(al.h)}</td><td class="r">${fmt(al.n)}</td><td class="r">${fmt(al.o)}</td><td class="r">${fmt(al.t)}</td></tr></table></div><p class="hint">แตะเดือนเพื่อดูรายคน</p></div>`;
+    h+=workerTable(S.att.filter(r=>r.date.startsWith(S.month)),"รายคน — เดือน"+thMonth(S.month));
+  }else{
+    h+=workerTable(S.att,"รายคน — ตั้งแต่เริ่มโครงการ");
+    const ws=[...new Set(S.att.map(r=>monday(r.date)))].sort().reverse();
+    h+=`<div class="card"><h3>${I("lock")} รอบสัปดาห์ทั้งหมด</h3><div class="tw"><table class="t"><tr><th>รอบที่</th><th class="l">ช่วงวันที่</th><th>คน</th><th>แรง</th><th>OT ชม.</th><th class="r">รวม (บาท)</th><th>สถานะ</th><th></th></tr>${ws.map(m=>{const t=summarize(recsBetween(m,addDays(m,6))).tot;const wr=weekRec(m);return `<tr><td>${weekNo(m)}</td><td class="l">${weekLabel(m)}</td><td>${t.people}</td><td>${fmt(t.d)}</td><td>${fmt(t.h)}</td><td class="r"><b>${fmt(t.t)}</b></td><td>${wr?.closedAt?'<span class="chip gray">ปิดแล้ว</span>':'<span class="chip wait">เปิดอยู่</span>'}</td><td><button class="ibtn" data-wpdf="${m}">${I("pdf")} PDF</button></td></tr>`}).join("")}</table></div></div>`;
+  }
+  $("#tabBody").innerHTML=h;
+  document.querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{S.sumTab=b.dataset.st;render()});
+  if($("#wPrev")){$("#wPrev").onclick=()=>{S.weekOf=addDays(S.weekOf,-7);render()};$("#wNext").onclick=()=>{S.weekOf=addDays(S.weekOf,7);render()};$("#wPdf").onclick=()=>pdfDialog(S.weekOf)}
+  document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{S.month=b.dataset.m;render()});
+  document.querySelectorAll("[data-wpdf]").forEach(b=>b.onclick=()=>pdfDialog(b.dataset.wpdf));
+  document.querySelectorAll("[data-rd]").forEach(b=>b.onclick=()=>{const [w,d]=b.dataset.rd.split("|");editRec(w,d)});
+}
+function workerTable(recs,title){
+  const sm=summarize(recs);const ws=sortedWorkers().filter(w=>sm.by.has(w.id));
+  return `<div class="card"><h3>${I("users")} ${esc(title)}</h3>${ws.length?`<div class="tw"><table class="t"><tr><th>ที่</th><th>รูป</th><th class="l">ชื่อ</th><th>ค่าแรง/วัน</th><th>วันทำงาน</th><th>OT ชม.</th><th class="r">ค่าแรงปกติ</th><th class="r">ค่า OT</th><th class="r">รวม</th></tr>${ws.map((w,i)=>{const x=sm.by.get(w.id);return `<tr><td>${i+1}</td><td>${avatar(w)}</td><td class="l nm">${esc(w.name)}</td><td>${fmt(w.wage)}</td><td>${fmt(x.d)}</td><td>${fmt(x.h)}</td><td class="r">${fmt(x.n)}</td><td class="r">${fmt(x.o)}</td><td class="r"><b>${fmt(x.t)}</b></td></tr>`}).join("")}<tr class="tot"><td colspan="4" class="l">รวม ${sm.tot.people} คน</td><td>${fmt(sm.tot.d)}</td><td>${fmt(sm.tot.h)}</td><td class="r">${fmt(sm.tot.n)}</td><td class="r">${fmt(sm.tot.o)}</td><td class="r">${fmt(sm.tot.t)}</td></tr></table></div>`:`<div class="empty-state">ยังไม่มีข้อมูล</div>`}</div>`;
+}
+
+/* ---------- tab: logs ---------- */
+function renderLogs(){
+  const ls=[...S.logs].sort((a,b)=>b.date.localeCompare(a.date));
+  let h=`<div class="acts" style="margin:0 0 14px"><button class="btn pri" id="lNew">${I("cam")} บันทึกงานวันนี้</button><button class="btn" id="lPick">${I("book")} บันทึกวันอื่น…</button><input type="date" id="lDate" style="display:none"></div>`;
+  if(!ls.length)h+=`<div class="empty-state"><div class="big">${I("book",54)}</div>ยังไม่มีบันทึกประจำวัน<br>ถ่ายรูปงานและเขียนว่าวันนี้ทำอะไร เพื่อแนบไปกับรายงานวันจันทร์</div>`;
+  for(const l of ls){const t=summarize(S.att.filter(r=>r.date===l.date)).tot;
+    h+=`<div class="log" data-log="${l.date}"><h4>${thLong(l.date)}<span class="chip ok">แรงงาน ${t.people} คน</span>${l.photos?.length?`<span class="chip all">${l.photos.length} รูป</span>`:""}</h4>${l.work?`<p>${esc(l.work)}</p>`:""}${l.issue?`<p style="color:#7a5a00">${esc(l.issue)}</p>`:""}<div class="thumbs">${(l.photos||[]).slice(0,8).map(p=>`<img data-ph="${esc(p)}">`).join("")}</div></div>`}
+  $("#tabBody").innerHTML=h;
+  $("#lNew").onclick=()=>editLog(todayISO());
+  $("#lPick").onclick=()=>{const i=$("#lDate");i.style.display="";i.value=todayISO();i.focus();try{i.showPicker()}catch(e){}};
+  $("#lDate").onchange=e=>e.target.value&&editLog(e.target.value);
+  document.querySelectorAll("[data-log]").forEach(b=>b.onclick=()=>editLog(b.dataset.log));
+}
+
+/* ================= project edit ================= */
+function editProject(p){
+  const n=!p;p=p?clone(p):{id:uid(),name:"",project:"",location:"",company:"บริษัท โปร คอนสตรัคชั่น แอนด์ ดีไซน์ จำกัด",startDate:todayISO(),timeIn:"08:00",timeOut:"17:00",hoursPerDay:8,otRate:1.5,thresh:0.5,preparer:"",createdAt:Date.now()};
+  const sh=openSheet(`<h2>${n?"สร้างโครงการใหม่":"ตั้งค่าโครงการ"}</h2>
+   ${micField("pName","ชื่อย่อ (แสดงในแอป)",p.name,false,"เช่น บ้านคุณสมชาย – ลำพูน")}
+   ${micField("pProject","ชื่อโครงการ (พิมพ์ในรายงาน)",p.project,false,"เช่น ก่อสร้างอาคารพักอาศัย 2 ชั้น")}
+   ${micField("pLoc","สถานที่",p.location,false)}
+   ${micField("pComp","ผู้รับจ้าง / บริษัท",p.company,false)}
+   <div class="row">${fld("pStart","วันเริ่มโครงการ",p.startDate,"date")}${fld("pIn","เวลาเข้างานปกติ",p.timeIn,"time")}${fld("pOut","เวลาเลิกงานปกติ",p.timeOut,"time")}</div>
+   <div class="row">${fld("pHrs","ชั่วโมงทำงาน/วัน (ใช้คิดค่า OT)",p.hoursPerDay,"number","8",'step="0.5"')}${fld("pOT","อัตรา OT (เท่าของค่าแรงต่อชั่วโมง)",p.otRate,"number","1.5",'step="0.05"')}</div>
+   <div class="fld"><label>ความเข้มงวดในการจดจำใบหน้า</label><select id="pTh">${[[0.45,"เข้มงวด (ลดการจำผิดคน)"],[0.5,"ปกติ (แนะนำ)"],[0.55,"หลวม (จำง่ายขึ้น)"]].map(([v,l])=>`<option value="${v}" ${+p.thresh===v?"selected":""}>${l}</option>`).join("")}</select></div>
+   ${micField("pPrep","ชื่อผู้จัดทำรายงาน (ลงในช่องลงนาม)",p.preparer,false)}
+   <p class="hint">ค่า OT ต่อชั่วโมง = ค่าแรงต่อวัน ÷ ชั่วโมงทำงาน × อัตรา OT (เช่น 400 ÷ 8 × 1.5 = 75 บาท/ชม.) — กำหนดเป็นรายคนได้ในหน้าคนงาน • ชั่วโมง OT ปัดลงทีละ 30 นาที</p>
+   <div class="acts">${n?"":`<button class="btn del" id="pDel">${I("trash")} ลบโครงการ</button>`}<span class="sp"></span><button class="btn" id="pC">ยกเลิก</button><button class="btn pri" id="pS">บันทึก</button></div>`);
+  sh.querySelector("#pC").onclick=closeSheet;
+  sh.querySelector("#pS").onclick=async()=>{
+    Object.assign(p,{name:$("#pName").value.trim()||$("#pProject").value.trim()||"โครงการใหม่",project:$("#pProject").value.trim(),location:$("#pLoc").value.trim(),company:$("#pComp").value.trim(),startDate:$("#pStart").value,timeIn:$("#pIn").value,timeOut:$("#pOut").value,hoursPerDay:+$("#pHrs").value||8,otRate:+$("#pOT").value||1.5,thresh:+$("#pTh").value||0.5,preparer:$("#pPrep").value.trim()});
+    try{await saveP(p);closeSheet();matcherDirty=true;if(n)openProject(p.id);else render()}catch(e){toast("บันทึกไม่สำเร็จ ("+(e.message||e)+")")}
+  };
+  if(!n)sh.querySelector("#pDel").onclick=async()=>{if(!await ask(`ลบโครงการ “${p.name}” พร้อมคนงาน การลงเวลา และบันทึกทั้งหมด? ย้อนกลับไม่ได้ (แนะนำสำรองข้อมูลก่อน)`,"ลบถาวร"))return;
+    for(const [s,arr] of [["workers",S.workers],["att",S.att],["logs",S.logs],["weeks",S.weeks]])for(const x of arr)await DB.del(s,x.id);
+    await DB.del("projects",p.id);S.projects=S.projects.filter(x=>x.id!==p.id);closeSheet();S.pid=null;render()};
+}
+async function touchProject(){const p=proj();if(!p)return;p.wcount=S.workers.filter(w=>w.active!==false).length;await saveP(p)}
+
+/* ================= worker register / edit ================= */
+function editWorker(w,pre){
+  const n=!w;
+  w=w?clone(w):{id:uid(),pid:S.pid,no:(S.workers.reduce((m,x)=>Math.max(m,x.no||0),0)+1),name:"",role:"",wage:proj().lastWage||"",otHr:"",phone:"",full:"",face:"",descs:[],active:true,createdAt:Date.now()};
+  const tmp={full:null,face:null,descs:[]};// new, not yet saved
+  if(pre){tmp.face=pre.blob;tmp.descs.push(descArr(pre.desc))}
+  const sh=openSheet(`<h2>${I(n?"uplus":"pen",24)} ${n?"ลงทะเบียนคนงานใหม่":"ข้อมูลคนงาน"}</h2>
+   <div class="regph">
+     <div><label style="font-weight:600;color:var(--navy);font-size:15px">รูปตัวเต็ม</label><div class="regbox" id="bxFull"></div></div>
+     <div><label style="font-weight:600;color:var(--navy);font-size:15px">รูปใบหน้า (ใช้จดจำ)</label><div class="regbox" id="bxFace"></div><div class="fstat" id="fSt"></div></div>
+   </div>
+   <p class="hint">ถ่ายรูปหน้าตรง ไม่ใส่หมวก/แว่นดำ แสงสว่างพอ • ถ่ายรูปหน้าเพิ่มได้หลายครั้งเพื่อให้จำแม่นขึ้น (เช่น ใส่หมวกนิรภัย / ไม่ใส่)</p>
+   ${micField("wName","ชื่อ – นามสกุล / ชื่อเล่น",w.name,false,"เช่น นายสมชาย ใจดี (ชาย)")}
+   <div class="row">${fld("wWage","ค่าแรง (บาท/วัน)",w.wage,"number","เช่น 400",'inputmode="decimal"')}${fld("wOt","ค่า OT (บาท/ชม.) — เว้นว่าง = คิดอัตโนมัติ",w.otHr,"number","อัตโนมัติ",'inputmode="decimal"')}</div>
+   <div class="row">${micField("wRole","ตำแหน่ง / ประเภทงาน",w.role,false,"เช่น ช่างปูน, กรรมกร")}${fld("wPhone","เบอร์โทร",w.phone,"tel","")}</div>
+   ${n?`<div class="fld"><div class="opt"><label><input type="checkbox" id="wNow" ${new Date().getHours()<17?"checked":""}> ลงเวลาเข้างานวันนี้ด้วย (กรณีมาสาย / มาใหม่)</label><input type="time" id="wNowT" value="${hmNow()}" style="width:auto;flex:none"></div></div>`:
+   `<div class="fld"><div class="opt"><label><input type="checkbox" id="wAct" ${w.active!==false?"checked":""}> ยังทำงานอยู่ (ปิด = พักงาน/ลาออก ไม่ต้องสแกน)</label></div></div>`}
+   <div class="acts">${n?"":`<button class="btn del" id="wDel">${I("trash")} ลบ</button>${w.descs?.length?`<button class="btn" id="wReset">ล้างข้อมูลใบหน้า (${w.descs.length})</button>`:""}`}<span class="sp"></span><button class="btn" id="wC">ยกเลิก</button><button class="btn pri" id="wS">บันทึก</button></div>`);
+  const st=sh.querySelector("#fSt");
+  const setSt=(t,c)=>{st.textContent=t;st.className="fstat "+(c||"")};
+  const drawBoxes=async()=>{
+    const fu=tmp.full?URL.createObjectURL(tmp.full):w.full?await DB.src(w.full):"";
+    const fa=tmp.face?URL.createObjectURL(tmp.face):w.face?await DB.src(w.face):"";
+    const btns=(k,self)=>`<div class="rb"><button class="btn sm pri" data-pk="${k}:${self?"self":"cam"}">${I("cam")} ถ่าย</button><button class="btn sm" data-pk="${k}:lib">${I("img")} คลังรูป</button></div>`;
+    sh.querySelector("#bxFull").innerHTML=(fu?`<img src="${fu}">`:`<span style="color:#9aa3b5">${I("users",48)}</span>`)+btns("full");
+    sh.querySelector("#bxFace").innerHTML=(fa?`<img src="${fa}">`:`<span style="color:#9aa3b5">${I("scan",48)}</span>`)+btns("face");
+    sh.querySelectorAll("[data-pk]").forEach(b=>b.onclick=()=>{const [k,src]=b.dataset.pk.split(":");pick(src,fs=>handle(k,fs[0]))});
+  };
+  const curDescs=()=>[...(w.descs||[]),...tmp.descs];
+  const showCount=()=>{const c=curDescs().length;if(c)setSt(`✓ มีข้อมูลใบหน้า ${c} ภาพ`,"ok");else setSt("ยังไม่มีข้อมูลใบหน้า — ถ่ายรูปหน้าก่อนบันทึก","wait")};
+  async function handle(k,file){
+    setSt("กำลังประมวลผลรูป…","wait");
+    try{
+      const c=await fileToCanvas(file,1600);
+      if(k==="full")tmp.full=await toBlob(c);
+      await drawBoxes();
+      try{await ensureFace(m=>setSt(m,"wait"))}catch(e){setSt("โหลดระบบจดจำใบหน้าไม่ได้ (ต้องต่ออินเทอร์เน็ตครั้งแรก)","bad");return}
+      setSt("กำลังหาใบหน้าในรูป…","wait");
+      const dets=(await detectAll(c,false)).sort((a,b)=>b.box.w*b.box.h-a.box.w*a.box.h);
+      if(!dets.length){if(k==="face"){tmp.face=await toBlob(c);await drawBoxes()}setSt(k==="face"?"✕ ไม่พบใบหน้าในรูป — ลองถ่ายใหม่ให้หน้าชัด/ใกล้ขึ้น":"รูปตัวเต็มบันทึกแล้ว (ไม่พบใบหน้าชัดในรูปนี้ — ถ่ายรูปหน้าแยก)","bad");return}
+      const d=dets[0];
+      const sim=similarWorker(d.desc,w.id);
+      if(sim&&!(await ask(`ใบหน้านี้คล้ายกับ “${W(sim.wid)?.name}” ที่ลงทะเบียนไว้แล้ว — ยืนยันว่าเป็นคนละคน?`,"ใช่ คนละคน",false))){setSt("ยกเลิกรูปนี้","bad");if(k==="full")tmp.full=null;await drawBoxes();return}
+      tmp.descs.push(descArr(d.desc));
+      if(k==="face"||(!tmp.face&&!w.face)){tmp.face=await cropFace(c,d.box,400,0.86);await drawBoxes()}
+      showCount();
+    }catch(e){console.error(e);setSt("ประมวลผลรูปไม่สำเร็จ: "+(e.message||e),"bad")}
+  }
+  drawBoxes();showCount();
+  sh.querySelector("#wC").onclick=closeSheet;
+  sh.querySelector("#wS").onclick=async()=>{
+    const name=$("#wName").value.trim();if(!name){toast("กรุณาใส่ชื่อ");return}
+    if(!curDescs().length&&!(await ask("ยังไม่มีข้อมูลใบหน้า — คนนี้จะสแกนไม่ได้ ต้องลงเวลาด้วยมือ บันทึกเลยไหม?","บันทึก",false)))return;
+    w.name=name;w.wage=+$("#wWage").value||0;w.otHr=$("#wOt").value===""?"":+$("#wOt").value;w.role=$("#wRole").value.trim();w.phone=$("#wPhone").value.trim();
+    if(!n)w.active=$("#wAct").checked;
+    try{
+      if(tmp.full)w.full=await DB.photo(tmp.full);if(tmp.face)w.face=await DB.photo(tmp.face);
+      w.descs=curDescs().slice(-12);await saveW(w);const p=proj();p.lastWage=w.wage;await touchProject();
+      if(n&&$("#wNow")?.checked){const t=$("#wNowT").value||hmNow();const r=getRec(todayISO(),w.id)||newRec(todayISO(),w);if(!r.in)r.in=t;await saveA(r)}
+      closeSheet();toast(n?`ลงทะเบียน ${w.name} แล้ว`:"บันทึกแล้ว");if(pre&&pre.onDone)pre.onDone(w);render();
+    }catch(e){toast("บันทึกไม่สำเร็จ ("+(e.message||e)+")")}
+  };
+  if(!n){
+    sh.querySelector("#wDel").onclick=async()=>{const has=S.att.some(r=>r.wid===w.id);if(!await ask(has?`${w.name} มีประวัติการลงเวลาแล้ว — แนะนำให้ปิด “ยังทำงานอยู่” แทนการลบ ต้องการลบคนงานและประวัติทั้งหมด?`:`ลบ ${w.name}?`,"ลบ"))return;
+      for(const r of S.att.filter(r=>r.wid===w.id))await DB.del("att",r.id);S.att=S.att.filter(r=>r.wid!==w.id);await DB.del("workers",w.id);S.workers=S.workers.filter(x=>x.id!==w.id);matcherDirty=true;await touchProject();closeSheet();render()};
+    const rs=sh.querySelector("#wReset");if(rs)rs.onclick=async()=>{if(!await ask("ล้างข้อมูลใบหน้าเดิมทั้งหมด แล้วถ่ายใหม่?","ล้าง"))return;w.descs=[];tmp.descs=[];showCount();rs.remove()};
+  }
+}
+
+/* ================= attendance edit / manual ================= */
+function editRec(wid,date){
+  const w=W(wid);if(!w)return;const ex=getRec(date,wid);const r=ex?clone(ex):newRec(date,w);
+  const fc=MK.filter(k=>r.faces&&r.faces[k]);
+  const sh=openSheet(`<h2>${avatar(w)} ${esc(w.name)}<span class="chip all" style="font-size:14px">${thLong(date)}</span></h2>
+   ${isClosed(date)?`<div class="banner">${I("lock")} รอบนี้ปิดแล้ว — ถ้าแก้ไข ควรออก PDF รอบนี้ใหม่</div>`:""}
+   <div class="row">${MK.map(k=>fld("r_"+k,MODES[k].t,r[k],"time")).join("")}</div>
+   <div class="row"><div class="fld"><label>คิดค่าแรงวันนี้</label><select id="rDay">${[["","อัตโนมัติ (มีเวลาเข้า/ออก = เต็มวัน)"],["1","เต็มวัน"],["0.5","ครึ่งวัน"],["0","ไม่คิดค่าแรง"]].map(([v,l])=>`<option value="${v}" ${String(r.dayF??"")===v?"selected":""}>${l}</option>`).join("")}</select></div>
+   ${fld("rOtH","ชั่วโมง OT (เว้นว่าง = คำนวณจากเวลา)",r.otH,"number","อัตโนมัติ",'step="0.5" inputmode="decimal"')}</div>
+   <div class="row">${fld("rWage","ค่าแรงวันนี้ (บาท)",r.wage,"number","",'inputmode="decimal"')}${fld("rOtHr","ค่า OT/ชม.",r.otHr,"number","อัตโนมัติ",'inputmode="decimal"')}</div>
+   ${micField("rNote","หมายเหตุ",r.note,false,"เช่น ลาครึ่งวันบ่าย")}
+   ${fc.length?`<div class="fld"><label>ภาพตอนสแกน</label><div class="thumbs">${fc.map(k=>`<div style="text-align:center;font-size:12px"><img data-ph="${esc(r.faces[k])}" data-view="${esc(r.faces[k])}" style="width:84px;height:84px"><br>${MODES[k].t} ${r[k]}</div>`).join("")}</div></div>`:""}
+   <div class="card" id="rCalc" style="margin:0;background:#f6f8fc"></div>
+   <div class="acts">${ex?`<button class="btn del" id="rDel">${I("trash")} ลบการลงเวลาวันนี้</button>`:""}<span class="sp"></span><button class="btn" id="rC">ยกเลิก</button><button class="btn pri" id="rS">บันทึก</button></div>`);
+  const collect=()=>{MK.forEach(k=>r[k]=$("#r_"+k).value);r.dayF=$("#rDay").value;r.otH=$("#rOtH").value;r.wage=+$("#rWage").value||0;r.otHr=$("#rOtHr").value;r.note=$("#rNote").value.trim()};
+  const calc=()=>{collect();const p=pay(r);sh.querySelector("#rCalc").innerHTML=`ค่าแรงปกติ ${p.d} วัน × ${fmt(r.wage)} = <b>${fmt(p.n)}</b> &nbsp;+&nbsp; OT ${p.h} ชม. × ${fmt(otRateHr(r))} = <b>${fmt(p.o)}</b> &nbsp;=&nbsp; <b style="color:var(--navy);font-size:19px">฿${fmt(p.t)}</b>`};
+  sh.querySelectorAll("input,select").forEach(i=>i.addEventListener("input",calc));calc();
+  sh.querySelectorAll("[data-view]").forEach(i=>i.onclick=()=>viewPhoto(i.dataset.view));
+  sh.querySelector("#rC").onclick=closeSheet;
+  sh.querySelector("#rS").onclick=async()=>{collect();try{await saveA(r);closeSheet();render();toast("บันทึกแล้ว",1200)}catch(e){toast("บันทึกไม่สำเร็จ")}};
+  if(ex)sh.querySelector("#rDel").onclick=async()=>{if(!await ask("ลบการลงเวลาของวันนี้?","ลบ"))return;await DB.del("att",r.id);S.att=S.att.filter(x=>x.id!==r.id);closeSheet();render()};
+}
+function manualSheet(date){
+  let mode=suggestMode();
+  const sh=openSheet(`<h2>${I("hand",24)} ลงเวลาด้วยมือ</h2>
+   <div class="row">${fld("mDate","วันที่",date,"date")}${fld("mTime","เวลา",hmNow(),"time")}</div>
+   <div class="fld"><label>ประเภท</label><div class="opt">${MK.map(k=>`<label><input type="radio" name="mm" value="${k}" ${k===mode?"checked":""}> ${MODES[k].t}</label>`).join("")}</div></div>
+   <div class="fld"><label>เลือกคนงาน <button class="ibtn" id="mAll" style="margin-left:8px">เลือกทั้งหมดที่ยังไม่ลง</button></label><div class="wlist" id="mList"></div></div>
+   <p class="hint">ใช้กรณีมาสาย สแกนหน้าไม่ติด หรือลืมสแกน • คนงานใหม่ให้กด “ลงทะเบียนคนงาน” แล้วติ๊ก “ลงเวลาเข้างานวันนี้ด้วย”</p>
+   <div class="acts"><button class="btn" id="mNew">${I("uplus")} คนงานใหม่</button><span class="sp"></span><button class="btn" id="mC">ยกเลิก</button><button class="btn pri" id="mS">บันทึก</button></div>`);
+  const list=()=>{const d=$("#mDate").value;mode=sh.querySelector("[name=mm]:checked").value;
+    sh.querySelector("#mList").innerHTML=sortedWorkers().filter(w=>w.active!==false).map(w=>{const r=getRec(d,w.id);const has=r&&r[mode];return `<label><input type="checkbox" value="${w.id}">${w.face?`<img data-ph="${esc(w.face)}">`:`<img>`}<span class="grow"><b>${esc(w.name)}</b><br><span class="sub">${has?`ลง${MODES[mode].t}แล้ว ${r[mode]}`:"ยังไม่ลง"+MODES[mode].t}</span></span></label>`}).join("")||`<div class="hint" style="padding:10px">ยังไม่มีคนงาน</div>`;hydrate(sh)};
+  list();sh.querySelectorAll("[name=mm]").forEach(i=>i.onchange=list);$("#mDate").onchange=list;
+  sh.querySelector("#mAll").onclick=e=>{e.preventDefault();const d=$("#mDate").value;sh.querySelectorAll("#mList input").forEach(c=>{const r=getRec(d,c.value);c.checked=!(r&&r[mode])})};
+  sh.querySelector("#mNew").onclick=()=>editWorker(null);
+  sh.querySelector("#mC").onclick=closeSheet;
+  sh.querySelector("#mS").onclick=async()=>{const d=$("#mDate").value,t=$("#mTime").value;const ids=[...sh.querySelectorAll("#mList input:checked")].map(c=>c.value);if(!ids.length){toast("ยังไม่ได้เลือกคนงาน");return}
+    for(const id of ids){const w=W(id);const r=getRec(d,id)?clone(getRec(d,id)):newRec(d,w);r[mode]=t;await saveA(r)}
+    closeSheet();render();toast(`ลง${MODES[mode].t} ${ids.length} คนแล้ว`)};
+}
+
+/* ================= daily log ================= */
+function editLog(date){
+  const id=S.pid+"|"+date;const ex=S.logs.find(l=>l.id===id);const l=ex?clone(ex):{id,pid:S.pid,date,work:"",issue:"",photos:[],createdAt:Date.now()};
+  const t=summarize(S.att.filter(r=>r.date===date)).tot;
+  const sh=openSheet(`<h2>${I("book",24)} บันทึกประจำวัน<span class="chip all" style="font-size:14px">${thLong(date)}</span></h2>
+   <p class="hint" style="margin-top:-6px">แรงงานวันนี้ ${t.people} คน • OT ${fmt(t.h)} ชม. • ค่าแรง ฿${fmt(t.t)}</p>
+   <div class="fld"><label>รูปการทำงาน</label><div class="photos" id="lPh"></div></div>
+   ${micField("lWork","งานที่ทำวันนี้",l.work,true,"เช่น เทพื้นชั้น 2, ผูกเหล็กคาน B1-B4")}
+   ${micField("lIssue","ปัญหา / หมายเหตุ",l.issue,true,"เช่น ฝนตกช่วงบ่าย หยุดงาน 2 ชม.")}
+   <div class="acts">${ex?`<button class="btn del" id="lDel">${I("trash")} ลบ</button>`:""}<span class="sp"></span><button class="btn" id="lC">ยกเลิก</button><button class="btn pri" id="lS">บันทึก</button></div>`);
+  const draw=()=>{sh.querySelector("#lPh").innerHTML=l.photos.map(p=>`<div class="p"><img data-ph="${esc(p)}" data-view="${esc(p)}"><button class="x" data-rm="${esc(p)}">✕</button></div>`).join("")+`<button class="addp" data-add="cam"><span class="addp-ic">${I("cam",26)}</span>ถ่ายรูป</button><button class="addp" data-add="lib"><span class="addp-ic">${I("img",24)}</span>คลังรูป</button>`;
+    sh.querySelectorAll("[data-view]").forEach(i=>i.onclick=()=>viewPhoto(i.dataset.view));
+    sh.querySelectorAll("[data-rm]").forEach(b=>b.onclick=async()=>{if(!await ask("ลบรูปนี้?","ลบรูป"))return;l.photos=l.photos.filter(x=>x!==b.dataset.rm);draw()});
+    sh.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>pick(b.dataset.add,async fs=>{toast("กำลังบันทึกรูป…",8000);for(const f of fs){try{l.photos.push(await DB.photo(await compress(f,1600)))}catch(e){toast("บันทึกรูปไม่สำเร็จ")}}draw();toast("เพิ่มรูปแล้ว",1200)}));
+    hydrate(sh)};
+  draw();
+  sh.querySelector("#lC").onclick=closeSheet;
+  sh.querySelector("#lS").onclick=async()=>{l.work=$("#lWork").value.trim();l.issue=$("#lIssue").value.trim();try{await saveL(l);closeSheet();if(S.tab!=="logs")S.tab="logs";render();toast("บันทึกแล้ว",1200)}catch(e){toast("บันทึกไม่สำเร็จ")}};
+  if(ex)sh.querySelector("#lDel").onclick=async()=>{if(!await ask("ลบบันทึกวันนี้?","ลบ"))return;await DB.del("logs",l.id);S.logs=S.logs.filter(x=>x.id!==l.id);closeSheet();render()};
+}
+
+/* ================= face scanner ================= */
+let SC=null;
+function openScanner(mode){
+  if(!S.workers.some(w=>w.active!==false&&w.descs&&w.descs.length)){toast("ยังไม่มีคนงานที่มีข้อมูลใบหน้า — ลงทะเบียนคนงานก่อน",3500);return}
+  const el=document.createElement("div");el.className="scan";
+  el.innerHTML=`<div class="scan-top"><div class="seg">${MK.map(k=>`<button data-sm="${k}">${MODES[k].t}</button>`).join("")}</div><span class="clk" id="scClk"></span><span class="sp"></span><button class="btn sm" id="scX" style="background:#ffffff22;color:#fff">✕ ปิด</button></div>
+   <div class="scan-main"><div class="stage"><video playsinline muted autoplay></video><canvas></canvas><div class="guide"></div><div class="msg" id="scMsg">กำลังเตรียมกล้อง…</div></div>
+   <div class="side"><h3>${I("users")} ผลการสแกน <span id="scN"></span></h3><div class="res" id="scRes"></div></div></div>
+   <div class="scan-bar"><button class="btn" id="scFlip">${I("flip")} สลับกล้อง</button><button class="btn" id="scPhoto">${I("cam")} ถ่ายภาพ (ละเอียด)</button><button class="btn" id="scAuto">${I("play")} สแกนต่อเนื่อง</button><button class="btn shot" id="scShot">${I("scan",26)} สแกน</button><button class="btn save" id="scSave" disabled>${I("check")} บันทึก</button></div>`;
+  document.body.appendChild(el);
+  SC={el,mode,stream:null,facing:"environment",res:new Map(),unk:[],busy:false,auto:false,video:el.querySelector("video"),cv:el.querySelector("canvas"),clk:setInterval(()=>{const c=$("#scClk");if(c)c.textContent=hmNow()},1000)};
+  $("#scClk").textContent=hmNow();
+  setMode(mode);
+  el.querySelectorAll("[data-sm]").forEach(b=>b.onclick=()=>{if(SC.res.size||SC.unk.length){toast("บันทึกหรือลบผลสแกนเดิมก่อนเปลี่ยนประเภท");return}setMode(b.dataset.sm)});
+  $("#scX").onclick=async()=>{if(SC.res.size&&!(await ask(`ยังไม่ได้บันทึก ${SC.res.size} คน — ปิดโดยไม่บันทึก?`,"ปิด")))return;closeScanner()};
+  $("#scFlip").onclick=()=>{SC.facing=SC.facing==="environment"?"user":"environment";startCam()};
+  $("#scShot").onclick=()=>scanVideo();
+  $("#scAuto").onclick=()=>{SC.auto=!SC.auto;$("#scAuto").classList.toggle("on",SC.auto);if(SC.auto)autoLoop()};
+  $("#scPhoto").onclick=()=>pick("cam",async fs=>{const c=await fileToCanvas(fs[0],2400);await processFrame(c,true)});
+  $("#scSave").onclick=scanSave;
+  ensureFace(scMsg).then(()=>{scMsg("พร้อมสแกน — ให้คนงานยืนเรียงหน้ากระดาน มองกล้อง แล้วกด “สแกน”");startCam()}).catch(e=>scMsg("โหลดระบบจดจำใบหน้าไม่ได้ — ต่ออินเทอร์เน็ตแล้วลองใหม่"));
+  renderRes();
+}
+function setMode(m){SC.mode=m;SC.el.querySelectorAll("[data-sm]").forEach(b=>b.classList.toggle("on",b.dataset.sm===m));SC.el.querySelector("#scShot").style.color=MODES[m].solid;SC.el.querySelector("#scShot").innerHTML=`${I("scan",26)} สแกน${MODES[m].t}`;renderRes()}
+function scMsg(t){const m=$("#scMsg");if(m){m.textContent=t;m.style.display=t?"":"none"}}
+async function startCam(){
+  if(!SC)return;if(SC.stream)SC.stream.getTracks().forEach(t=>t.stop());
+  try{SC.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:SC.facing,width:{ideal:1920},height:{ideal:1080}},audio:false});
+    SC.video.srcObject=SC.stream;SC.video.style.transform=SC.facing==="user"?"scaleX(-1)":"";await SC.video.play().catch(()=>{});
+  }catch(e){scMsg("เปิดกล้องสดไม่ได้ — ใช้ปุ่ม “ถ่ายภาพ (ละเอียด)” แทน")}
+}
+function closeScanner(){if(!SC)return;SC.auto=false;clearInterval(SC.clk);if(SC.stream)SC.stream.getTracks().forEach(t=>t.stop());SC.res.forEach(r=>URL.revokeObjectURL(r.url));SC.unk.forEach(u=>URL.revokeObjectURL(u.url));SC.el.remove();SC=null;render()}
+async function scanVideo(fine=true){
+  if(!SC||SC.busy)return;const v=SC.video;if(!v.videoWidth){toast("กล้องยังไม่พร้อม");return}
+  const c=document.createElement("canvas");c.width=v.videoWidth;c.height=v.videoHeight;const g=c.getContext("2d");
+  if(SC.facing==="user"){g.translate(c.width,0);g.scale(-1,1)}g.drawImage(v,0,0);
+  await processFrame(c,fine);
+}
+async function autoLoop(){while(SC&&SC.auto){await scanVideo(false);await new Promise(r=>setTimeout(r,700))}}
+async function processFrame(c,fine){
+  if(!FACE.ready){toast("ระบบจดจำใบหน้ายังโหลดไม่เสร็จ");return}
+  SC.busy=true;scMsg("กำลังสแกน…");$("#scShot").disabled=true;
+  try{
+    const time=hmNow();const dets=matchFaces(await detectAll(c,fine));if(!SC)return;
+    let nNew=0,nUnk=0;
+    for(const d of dets){
+      if(d.wid){const ex=SC.res.get(d.wid);if(ex&&ex.dist<=d.dist)continue;const blob=await cropFace(c,d.box);if(ex)URL.revokeObjectURL(ex.url);else nNew++;SC.res.set(d.wid,{wid:d.wid,dist:d.dist,blob,url:URL.createObjectURL(blob),time:ex?ex.time:time,desc:d.desc});}
+      else{if(d.score<0.6)continue;if(SC.unk.some(u=>faceapi.euclideanDistance(u.desc,d.desc)<0.45))continue;const blob=await cropFace(c,d.box);SC.unk.push({id:uid(),blob,url:URL.createObjectURL(blob),desc:d.desc,time});nUnk++}
+    }
+    // freeze frame with boxes
+    const cv=SC.cv;cv.width=c.width;cv.height=c.height;const g=cv.getContext("2d");g.drawImage(c,0,0);
+    const fs=Math.max(18,c.width/55);g.lineWidth=Math.max(3,c.width/400);g.font=`700 ${fs}px Sarabun, sans-serif`;g.textBaseline="bottom";
+    for(const d of dets){const col=d.wid?"#2fd17a":"#ffb020";g.strokeStyle=col;g.strokeRect(d.box.x,d.box.y,d.box.w,d.box.h);
+      const label=d.wid?(W(d.wid)?.name||""):"ไม่รู้จัก";const tw=g.measureText(label).width+12;g.fillStyle=col;g.fillRect(d.box.x,d.box.y-fs*1.35,tw,fs*1.35);g.fillStyle="#000";g.fillText(label,d.box.x+6,d.box.y-fs*0.12)}
+    cv.style.display="block";clearTimeout(SC.frz);SC.frz=setTimeout(()=>{if(SC)SC.cv.style.display="none"},SC.auto?900:2600);
+    scMsg(dets.length?`พบ ${dets.length} หน้า • จำได้ ${dets.filter(d=>d.wid).length} คน${nNew?` (ใหม่ ${nNew})`:""}${nUnk?` • ไม่รู้จัก ${nUnk}`:""}`:"ไม่พบใบหน้า — ให้ยืนใกล้ขึ้น หันหน้าตรง แสงสว่างพอ");
+    renderRes();
+  }catch(e){console.error(e);scMsg("สแกนไม่สำเร็จ: "+(e.message||e))}
+  finally{if(SC){SC.busy=false;$("#scShot").disabled=false}}
+}
+function scanDate(){const d=new Date();let iso=todayISO();if((SC.mode==="otOut"||SC.mode==="out")&&d.getHours()<6)iso=addDays(iso,-1);return iso}
+function renderRes(){
+  if(!SC)return;const box=$("#scRes");if(!box)return;const date=scanDate();const k=SC.mode;
+  const items=[...SC.res.values()].map(r=>{const w=W(r.wid);const ex=getRec(date,r.wid);const has=ex&&ex[k];const keep=has&&(k==="in"||k==="otIn");
+    return `<div class="ri"><img src="${r.url}"><div class="g"><b>${esc(w?.name||"?")}</b><span>${keep?`มีเวลา${MODES[k].t}แล้ว ${ex[k]} (ไม่ทับ)`:has?`อัปเดต ${ex[k]} → ${r.time}`:`${MODES[k].t} ${r.time}`} • ${Math.round((1-r.dist)*100)}%</span></div><button class="x" data-rmr="${r.wid}">✕</button></div>`}).join("");
+  const unk=SC.unk.map(u=>`<div class="ri unk" data-unk="${u.id}"><img src="${u.url}"><div class="g"><b>ไม่รู้จัก</b><span>แตะเพื่อเลือกชื่อ / ลงทะเบียน</span></div><button class="x" data-rmu="${u.id}">✕</button></div>`).join("");
+  const active=S.workers.filter(w=>w.active!==false).length;const done=S.att.filter(r=>r.date===date&&r[k]).length;
+  box.innerHTML=(items||unk)?items+unk:`<div style="opacity:.7;padding:10px;font-size:14px">ยังไม่มีผล • ลง${MODES[k].t}วันนี้แล้ว ${done}/${active} คน</div>`;
+  $("#scN").textContent=SC.res.size?`(${SC.res.size} คน)`:"";
+  const sv=$("#scSave");sv.disabled=!SC.res.size;sv.innerHTML=`${I("check")} บันทึก${MODES[k].t} ${SC.res.size||""} คน`;
+  box.querySelectorAll("[data-rmr]").forEach(b=>b.onclick=e=>{e.stopPropagation();const r=SC.res.get(b.dataset.rmr);if(r)URL.revokeObjectURL(r.url);SC.res.delete(b.dataset.rmr);renderRes()});
+  box.querySelectorAll("[data-rmu]").forEach(b=>b.onclick=e=>{e.stopPropagation();SC.unk=SC.unk.filter(u=>u.id!==b.dataset.rmu);renderRes()});
+  box.querySelectorAll("[data-unk]").forEach(b=>b.onclick=()=>assignUnknown(b.dataset.unk));
+}
+function assignUnknown(id){
+  const u=SC.unk.find(x=>x.id===id);if(!u)return;
+  const sh=openSheet(`<h2><img src="${u.url}" style="width:64px;height:64px;border-radius:12px;object-fit:cover"> ใบหน้านี้คือใคร?</h2>
+   <div class="fld"><input id="aQ" placeholder="ค้นหาชื่อ…"></div><div class="wlist" id="aL"></div>
+   <p class="hint">เลือกชื่อแล้วระบบจะจำใบหน้านี้เพิ่ม ครั้งหน้าจะสแกนติดง่ายขึ้น</p>
+   <div class="acts"><button class="btn pri" id="aNew">${I("uplus")} ลงทะเบียนเป็นคนงานใหม่</button><span class="sp"></span><button class="btn" id="aC">ยกเลิก</button></div>`);
+  const draw=()=>{const q=$("#aQ").value.trim();sh.querySelector("#aL").innerHTML=sortedWorkers().filter(w=>w.active!==false&&(!q||w.name.includes(q))).map(w=>`<button data-aw="${w.id}">${w.face?`<img data-ph="${esc(w.face)}">`:"<img>"}<span class="grow"><b>${esc(w.name)}</b> ${SC.res.has(w.id)?'<span class="chip ok">สแกนแล้ว</span>':""}</span></button>`).join("");hydrate(sh);
+    sh.querySelectorAll("[data-aw]").forEach(b=>b.onclick=async()=>{const w=clone(W(b.dataset.aw));w.descs=[...(w.descs||[]),descArr(u.desc)].slice(-12);await saveW(w);
+      SC.res.set(w.id,{wid:w.id,dist:0.4,blob:u.blob,url:u.url,time:u.time,desc:u.desc});SC.unk=SC.unk.filter(x=>x.id!==id);closeSheet();renderRes();toast(`จำหน้า ${w.name} เพิ่มแล้ว`)})};
+  $("#aQ").oninput=draw;draw();
+  sh.querySelector("#aC").onclick=closeSheet;
+  sh.querySelector("#aNew").onclick=()=>editWorker(null,{blob:u.blob,desc:u.desc,onDone:w=>{if(!SC)return;SC.unk=SC.unk.filter(x=>x.id!==id);SC.res.set(w.id,{wid:w.id,dist:0.3,blob:u.blob,url:u.url,time:u.time,desc:u.desc});renderRes()}});
+}
+async function scanSave(){
+  if(!SC||!SC.res.size)return;const k=SC.mode,date=scanDate();let n=0,skip=0;
+  for(const r of SC.res.values()){const w=W(r.wid);if(!w)continue;const ex=getRec(date,w.id);const rec=ex?clone(ex):newRec(date,w);
+    if(rec[k]&&(k==="in"||k==="otIn")){skip++;continue}
+    rec[k]=r.time;rec.faces=rec.faces||{};try{rec.faces[k]=await DB.photo(r.blob)}catch(e){}
+    await saveA(rec);n++;URL.revokeObjectURL(r.url)}
+  SC.res.clear();SC.unk=[];renderRes();
+  toast(`บันทึก${MODES[k].t} ${n} คนแล้ว${skip?` (มีเวลาอยู่แล้ว ${skip} คน)`:""}`,3000);
+}
+
+/* ================= backup ================= */
+const blobToData=b=>new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(b)});
+async function exportBackup(){
+  toast("กำลังรวบรวมข้อมูล…",15000);
+  const data={};for(const s of STORES)data[s]=await DB.all(s);const photos={};
+  const ids=new Set();data.workers.forEach(w=>{w.full&&ids.add(w.full);w.face&&ids.add(w.face)});data.logs.forEach(l=>(l.photos||[]).forEach(p=>ids.add(p)));data.att.forEach(r=>Object.values(r.faces||{}).forEach(p=>ids.add(p)));
+  for(const id of ids){const b=await DB.blob(id);if(b)photos[id]=await blobToData(b)}
+  const blob=new Blob([JSON.stringify({app:"procon-dc",v:1,at:Date.now(),...data,photos})],{type:"application/json"});
+  const d=new Date();await saveFile(blob,`ProCon_DC_Backup_${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()+543}.json`);toast("สำรองข้อมูลแล้ว",1500);
+}
+async function importBackup(file){
+  try{const j=JSON.parse(await file.text());if(j.app!=="procon-dc")throw new Error("ไม่ใช่ไฟล์สำรองของแอปนี้");
+    if(!await ask(`นำเข้า ${j.projects.length} โครงการ / ${j.workers.length} คนงาน / ${j.att.length} รายการลงเวลา? (ข้อมูลที่ซ้ำจะถูกแทนที่)`,"นำเข้า",false))return;
+    toast("กำลังนำเข้า…",20000);
+    for(const [id,d] of Object.entries(j.photos||{})){const b=await (await fetch(d)).blob();await DB.put("photos",b,id)}
+    for(const s of STORES)for(const x of j[s]||[])await DB.put(s,x);
+    S.projects=await DB.all("projects");render();toast("นำเข้าเรียบร้อย");
+  }catch(e){toast("นำเข้าไม่สำเร็จ: "+(e.message||e),4000)}
+}
+
+/* ================= PDF ================= */
+const PX=7.874; // px per mm (200 dpi)
+const NAVY="#1f2f6b",NAVY2="#2c4a9a",GOLD="#b48a55",SOFT="#e8ecf6",GRID="#9aa3b5";
+const seg=(window.Intl&&Intl.Segmenter)?new Intl.Segmenter("th",{granularity:"word"}):null;
+function font(ctx,size,w=400){ctx.font=`${w} ${size*PX}px Sarabun, Thonburi, sans-serif`}
+function wrap(ctx,text,maxW){
+  const lines=[];maxW*=PX;
+  for(const para of String(text||"").split("\n")){
+    const toks=seg?[...seg.segment(para)].map(s=>s.segment):[...para];let line="";
+    for(let t of toks){
+      if(ctx.measureText(line+t).width<=maxW){line+=t;continue}
+      if(line.trim()){lines.push(line.trimEnd());line=""}
+      t=t.trimStart();
+      if(ctx.measureText(t).width>maxW){for(const ch of t){if(ctx.measureText(line+ch).width>maxW&&line){lines.push(line);line=""}line+=ch}}else line=t;
+    }
+    lines.push(line);
+  }
+  return lines;
+}
+// align by measuring ourselves: iPad Safari ignored ctx.textAlign in the Defect app
+function txt(ctx,s,x,y,size,w=400,color="#1b2133",align="left"){s=String(s??"");font(ctx,size,w);ctx.fillStyle=color;ctx.textAlign="left";ctx.textBaseline="top";let px=x*PX;if(align!=="left"){const tw=ctx.measureText(s).width;px-=align==="center"?tw/2:tw}ctx.fillText(s,px,y*PX)}
+function fit(ctx,s,maxW,size,w=400){s=String(s??"");font(ctx,size,w);if(ctx.measureText(s).width<=maxW*PX)return s;while(s.length>1&&ctx.measureText(s+"…").width>maxW*PX)s=s.slice(0,-1);return s+"…"}
+function rect(ctx,x,y,w,h,fill,stroke,lw=0.25){ctx.beginPath();ctx.rect(x*PX,y*PX,w*PX,h*PX);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw*PX;ctx.stroke()}}
+function drawLogo(ctx,img,x,y,h){if(!img)return 0;const w=h*img.naturalWidth/img.naturalHeight;ctx.drawImage(img,x*PX,y*PX,w*PX,h*PX);return w}
+async function drawPhoto(ctx,id,x,y,w,h,cover){
+  rect(ctx,x,y,w,h,"#eef0f4");if(!id)return;
+  try{const img=await loadImg(await DB.src(id));const s=cover?Math.max(w/img.naturalWidth,h/img.naturalHeight):Math.min(w/img.naturalWidth,h/img.naturalHeight);const iw=img.naturalWidth*s,ih=img.naturalHeight*s;
+    ctx.save();ctx.beginPath();ctx.rect(x*PX,y*PX,w*PX,h*PX);ctx.clip();ctx.drawImage(img,(x+(w-iw)/2)*PX,(y+(h-ih)/2)*PX,iw*PX,ih*PX);ctx.restore()}catch(e){}
+}
+class Doc{
+  constructor(W,H,header){this.W=W;this.H=H;this.pages=[];this.header=header;this.bottom=H-13;this.newPage()}
+  newPage(){this.pages.push({ops:[]});this.y=this.header(this,this.pages.length)}
+  add(fn){this.pages[this.pages.length-1].ops.push(fn)}
+  need(h){if(this.y+h>this.bottom){this.newPage();return true}return false}
+  async render(prog,footer){
+    const cv=document.createElement("canvas");cv.width=Math.round(this.W*PX);cv.height=Math.round(this.H*PX);const ctx=cv.getContext("2d");
+    const jpgs=[],prev=[];const n=this.pages.length;
+    for(let i=0;i<n;i++){prog(`กำลังวาดหน้า ${i+1}/${n}…`,i/n);ctx.fillStyle="#fff";ctx.fillRect(0,0,cv.width,cv.height);
+      for(const op of this.pages[i].ops)await op(ctx);footer(ctx,i+1,n);
+      const b=await toBlob(cv,0.86);jpgs.push(new Uint8Array(await b.arrayBuffer()));prev.push(URL.createObjectURL(b))}
+    prog("กำลังรวมไฟล์ PDF…",1);
+    return {pages:prev,blob:new Blob([makePdf(jpgs,cv.width,cv.height,this.W/25.4*72,this.H/25.4*72)],{type:"application/pdf"})};
+  }
+}
+function pdfDialog(mon){
+  const cur=monday(todayISO());mon=mon||pendingWeek()||cur;
+  let m=mon;
+  const sh=openSheet(`<h2>${I("pdf",26)} สรุปรอบสัปดาห์ & ออก PDF</h2>
+   <div class="dnav"><button class="ibtn" id="xP">${I("chevL")}</button><span class="lbl" id="xL"></span><button class="ibtn" id="xN">${I("chevR")}</button></div>
+   <div class="card" id="xSum" style="background:#f6f8fc"></div>
+   <div class="fld"><label>แนบในรายงาน</label><div class="opt"><label><input type="checkbox" id="xLog" checked> บันทึกประจำวัน + รูปการทำงาน</label><label><input type="checkbox" id="xMon" checked> สรุปรายเดือน & ทั้งโครงการ</label><label><input type="checkbox" id="xSig" checked> ช่องลงนาม</label></div></div>
+   <div class="fld" id="xCloseF"><div class="opt"><label><input type="checkbox" id="xClose" checked> ปิดรอบนี้หลังสร้าง PDF (เริ่มนับรอบใหม่)</label></div></div>
+   <div id="xOut"></div>
+   <div class="acts"><span class="sp"></span><button class="btn" id="xC">ปิด</button><button class="btn gold" id="xGo">${I("pdf")} สร้าง PDF</button></div>`,null,true);
+  const upd=()=>{const t=summarize(recsBetween(m,addDays(m,6))).tot;const wr=weekRec(m);const ended=addDays(m,6)<todayISO();
+    $("#xL").textContent=`รอบที่ ${weekNo(m)} • ${weekLabel(m)}`;
+    $("#xSum").innerHTML=`แรงงาน <b>${t.people}</b> คน • <b>${fmt(t.d)}</b> แรง • OT <b>${fmt(t.h)}</b> ชม. • รวม <b style="color:var(--navy);font-size:19px">฿${fmt(t.t)}</b> ${wr?.closedAt?`<span class="chip gray">ปิดรอบแล้ว</span>`:ended?'<span class="chip wait">ยังไม่ปิดรอบ</span>':'<span class="chip ok">รอบปัจจุบัน (ยังไม่จบสัปดาห์)</span>'}`;
+    $("#xCloseF").style.display=ended&&!wr?.closedAt?"":"none";$("#xOut").innerHTML="";const b=$("#xGo");b.className="btn gold";b.innerHTML=`${I("pdf")} สร้าง PDF`;b.onclick=go};
+  $("#xP").onclick=()=>{m=addDays(m,-7);upd()};$("#xN").onclick=()=>{m=addDays(m,7);upd()};
+  sh.querySelector("#xC").onclick=closeSheet;
+  async function go(){
+    const btn=$("#xGo");btn.disabled=true;const out=$("#xOut");out.innerHTML=`<div class="hint" id="xMsg">กำลังจัดหน้า…</div><div class="prog"><i id="xBar"></i></div>`;
+    const o={logs:$("#xLog").checked,months:$("#xMon").checked,sig:$("#xSig").checked};
+    try{
+      const res=await buildWeekPdf(m,o,(t,f)=>{const a=$("#xMsg"),b=$("#xBar");if(a)a.textContent=t;if(b)b.style.width=Math.round(f*100)+"%"});
+      const p=proj();const fname=`DC_${(p.name||"report").replace(/[\\/:*?"<>|]+/g,"_")}_รอบ${weekNo(m)}_${thDate(m).replace(/\//g,"-")}.pdf`;
+      if($("#xCloseF").style.display!=="none"&&$("#xClose").checked){const t=summarize(recsBetween(m,addDays(m,6))).tot;await saveWk({id:S.pid+"|"+m,pid:S.pid,start:m,end:addDays(m,6),closedAt:Date.now(),total:t.t,days:t.d,ot:t.h,people:t.people});$("#xCloseF").style.display="none";render()}
+      out.innerHTML=`<div class="hint">ได้ ${res.pages.length} หน้า (${(res.blob.size/1048576).toFixed(1)} MB) — กด “บันทึก / แชร์” แล้วเลือก LINE / Mail / ไฟล์</div><div class="pages">${res.pages.map(u=>`<img src="${u}">`).join("")}</div>`;
+      btn.disabled=false;btn.className="btn okb";btn.innerHTML=`${I("down")} บันทึก / แชร์ PDF`;btn.onclick=()=>saveFile(res.blob,fname);
+    }catch(e){console.error(e);out.innerHTML=`<div class="banner">สร้าง PDF ไม่สำเร็จ: ${esc(e.message||e)}</div>`;btn.disabled=false}
+  }
+  upd();
+}
+async function buildWeekPdf(mon,o,prog){
+  try{await Promise.all([400,600,700].map(w=>document.fonts.load(`${w} 30px Sarabun`)))}catch(e){}
+  const logo=await loadImg("logo.jpg").catch(()=>null);
+  const p=proj();const PW=297,PH=210,M=8.5,TW=PW-2*M;
+  const days=[...Array(7)].map((_,i)=>addDays(mon,i)),sun=days[6];
+  const recs=recsBetween(mon,sun);const sm=summarize(recs);const ws=sortedWorkers().filter(w=>sm.by.has(w.id));
+  const no=weekNo(mon);const title="สรุปการทำงานแรงงานรายวัน (DC)";
+  const header=(doc,pn)=>{
+    if(pn===1){doc.add(ctx=>{drawLogo(ctx,logo,M,M,17);
+      txt(ctx,title,PW/2,M+0.5,6,700,NAVY,"center");
+      txt(ctx,`รอบที่ ${no}  •  ${thLong(mon)} – ${thLong(sun)}`,PW/2,M+9,3.7,600,GOLD,"center");
+      rect(ctx,M,M+19,TW,0.6,GOLD);
+      const info=[["โครงการ",p.project||p.name],["สถานที่",p.location],["ผู้รับจ้าง",p.company]];
+      info.forEach(([k,v],i)=>{txt(ctx,k,M+1,M+21.5+i*5,3.4,700,NAVY);txt(ctx,": "+(v||"-"),M+20,M+21.5+i*5,3.4,400)});
+      txt(ctx,"วันที่ออกรายงาน "+thDate(todayISO()),PW-M-1,M+21.5,3.4,600,"#1b2133","right");
+      txt(ctx,"เวลาทำงานปกติ "+(p.timeIn||"08:00")+" – "+(p.timeOut||"17:00")+" น.  •  OT × "+(p.otRate||1.5),PW-M-1,M+26.5,3.2,400,"#555","right");
+    });return M+38}
+    doc.add(ctx=>{drawLogo(ctx,logo,M,M,10);txt(ctx,title,PW/2,M,4.4,700,NAVY,"center");txt(ctx,`${p.project||p.name||""}  •  รอบที่ ${no}  (${thDate(mon)} – ${thDate(sun)})`,PW/2,M+6,3.1,400,"#555","center");rect(ctx,M,M+11.5,TW,0.35,GOLD)});
+    return M+15;
+  };
+  const doc=new Doc(PW,PH,header);
+  // ---- weekly table ----
+  const C=[8,11,40,16,18,18,18,18,18,18,18,11,12,19,17,20];const X=C.reduce((a,w,i)=>(a.push(a[i]+w),a),[M]);
+  const HD=11,RH=11.5;
+  const head=()=>{const y=doc.y;doc.add(ctx=>{rect(ctx,M,y,TW,HD,NAVY);
+    const lab=["ที่","รูป","ชื่อ – สกุล","ค่าแรง/วัน"];lab.forEach((t,i)=>txt(ctx,t,X[i]+C[i]/2,y+3.6,3.1,700,"#fff","center"));
+    days.forEach((d,i)=>{const c=4+i;txt(ctx,TH_DF[parse(d).getDay()],X[c]+C[c]/2,y+1.4,3,700,"#fff","center");txt(ctx,thShort(d),X[c]+C[c]/2,y+5.9,2.7,400,"#ffffffcc","center")});
+    [["วัน",11],["OT ชม.",12],["ค่าแรงปกติ",13],["ค่า OT",14],["รวม (บาท)",15]].forEach(([t,c])=>txt(ctx,t,X[c]+C[c]/2,y+3.6,3,700,"#fff","center"))});doc.y+=HD};
+  head();
+  ws.forEach((w,i)=>{
+    if(doc.need(RH))head();const y=doc.y;const x=sm.by.get(w.id);
+    doc.add(async ctx=>{
+      if(i%2)rect(ctx,M,y,TW,RH,"#f7f8fb");
+      txt(ctx,i+1,X[0]+C[0]/2,y+3.9,3.1,600,"#1b2133","center");
+      if(w.face)await drawPhoto(ctx,w.face,X[1]+1.2,y+1,C[1]-2.4,RH-2,true);
+      txt(ctx,fit(ctx,w.name,C[2]-2.5,3.2,700),X[2]+1.5,y+1.9,3.2,700);
+      txt(ctx,fit(ctx,w.role||"",C[2]-2.5,2.6),X[2]+1.5,y+6.6,2.6,400,"#6b7387");
+      txt(ctx,fmt(w.wage),X[3]+C[3]/2,y+3.9,3.1,400,"#1b2133","center");
+      days.forEach((d,j)=>{const c=4+j;const r=x.recs.find(r=>r.date===d);const cx=X[c]+C[c]/2;
+        if(!r){txt(ctx,"–",cx,y+3.6,3.2,400,"#b0b6c3","center");return}
+        const pp=pay(r);if(pp.d)rect(ctx,X[c]+0.3,y+0.3,C[c]-0.6,RH-0.6,"#e8f6ee");
+        txt(ctx,`${r.in||"--:--"}–${r.out||"--:--"}`,cx,y+1.5,2.45,600,isLate(r)?"#c46a12":"#1b2133","center");
+        const l2=[pp.d===0.5?"½ วัน":pp.d===0?"ไม่คิด":"",pp.h?`OT ${pp.h} ชม.`:""].filter(Boolean).join(" ");
+        if(l2)txt(ctx,l2,cx,y+5.2,2.4,700,pp.h?NAVY2:"#c46a12","center");
+        if(r.otIn&&pp.h)txt(ctx,`${r.otIn}–${r.otOut||"?"}`,cx,y+8.3,2.1,400,"#6b7387","center");
+      });
+      txt(ctx,fmt(x.d),X[11]+C[11]/2,y+3.9,3.1,600,"#1b2133","center");
+      txt(ctx,fmt(x.h),X[12]+C[12]/2,y+3.9,3.1,600,"#1b2133","center");
+      txt(ctx,fmt(x.n),X[14]-1.5,y+3.9,3.1,400,"#1b2133","right");
+      txt(ctx,fmt(x.o),X[15]-1.5,y+3.9,3.1,400,"#1b2133","right");
+      txt(ctx,fmt(x.t),X[16]-1.5,y+3.9,3.3,700,NAVY,"right");
+      for(let c=0;c<C.length;c++)rect(ctx,X[c],y,C[c],RH,null,GRID);
+    });doc.y+=RH;
+  });
+  if(!ws.length){const y=doc.y;doc.add(ctx=>{rect(ctx,M,y,TW,14,null,GRID);txt(ctx,"ไม่มีการลงเวลาในรอบนี้",PW/2,y+4.5,3.6,400,"#888","center")});doc.y+=14}
+  // totals row
+  doc.need(11);{const y=doc.y;const dt=days.map(d=>summarize(recs.filter(r=>r.date===d)).tot);
+    doc.add(ctx=>{rect(ctx,M,y,TW,11,SOFT);txt(ctx,`รวม ${sm.tot.people} คน`,X[2]+1.5,y+3.7,3.3,700,NAVY);
+      dt.forEach((t,j)=>{const c=4+j;txt(ctx,`${t.people} คน`,X[c]+C[c]/2,y+1.4,2.7,700,NAVY,"center");txt(ctx,fmt0(t.t),X[c]+C[c]/2,y+5.6,2.7,400,"#1b2133","center")});
+      txt(ctx,fmt(sm.tot.d),X[11]+C[11]/2,y+3.7,3.1,700,NAVY,"center");txt(ctx,fmt(sm.tot.h),X[12]+C[12]/2,y+3.7,3.1,700,NAVY,"center");
+      txt(ctx,fmt(sm.tot.n),X[14]-1.5,y+3.7,3.1,700,NAVY,"right");txt(ctx,fmt(sm.tot.o),X[15]-1.5,y+3.7,3.1,700,NAVY,"right");txt(ctx,fmt(sm.tot.t),X[16]-1.5,y+3.6,3.5,700,NAVY,"right");
+      for(let c=0;c<C.length;c++)rect(ctx,X[c],y,C[c],11,null,GRID)});doc.y+=11}
+  // summary + signatures
+  doc.y+=4;doc.need(52);{const y=doc.y;const ym=sun.slice(0,7);const moT=summarize(S.att.filter(r=>r.date>=ym+"-01"&&r.date<=sun)).tot;const alT=summarize(S.att.filter(r=>r.date<=sun)).tot;
+    doc.add(ctx=>{const bw=112;rect(ctx,M,y,bw,48,"#fbfcfe",GRID);rect(ctx,M,y,bw,7.5,NAVY);txt(ctx,`สรุปค่าแรงรอบที่ ${no}`,M+3,y+1.9,3.4,700,"#fff");
+      const L=[["จำนวนแรงงาน",`${sm.tot.people} คน`],["รวมแรงงาน",`${fmt(sm.tot.d)} แรง (คน-วัน)`],["รวมชั่วโมง OT",`${fmt(sm.tot.h)} ชม.`],["ค่าแรงปกติ",`${fmt(sm.tot.n)} บาท`],["ค่าล่วงเวลา (OT)",`${fmt(sm.tot.o)} บาท`]];
+      L.forEach(([k,v],i)=>{txt(ctx,k,M+3,y+9.5+i*4.6,3.2,400,"#444");txt(ctx,v,M+bw-3,y+9.5+i*4.6,3.2,600,"#1b2133","right")});
+      rect(ctx,M+2,y+33,bw-4,6.2,"#e8f6ee");txt(ctx,"รวมค่าแรงรอบนี้",M+4,y+34,3.6,700,"#1f8a4c");txt(ctx,fmt(sm.tot.t)+" บาท",M+bw-4,y+34,3.8,700,"#1f8a4c","right");
+      txt(ctx,`สะสมเดือน${TH_MF[+ym.slice(5)-1]} (ถึง ${thDate(sun)})`,M+3,y+40.6,2.9,400,"#555");txt(ctx,fmt(moT.t)+" บาท",M+bw-3,y+40.6,2.9,600,"#1b2133","right");
+      txt(ctx,`สะสมทั้งโครงการ (ตั้งแต่ ${thDate(projStart())})`,M+3,y+44.2,2.9,400,"#555");txt(ctx,fmt(alT.t)+" บาท",M+bw-3,y+44.2,2.9,600,"#1b2133","right");
+      if(o.sig){const sx=M+bw+5,sw=(TW-bw-5-8)/3;[["ผู้จัดทำ",p.preparer],["ผู้ตรวจสอบ",""],["ผู้อนุมัติ",""]].forEach(([role,nm],i)=>{const bx=sx+i*(sw+4);rect(ctx,bx,y,sw,48,null,GRID);
+        txt(ctx,role,bx+sw/2,y+2.5,3.4,700,NAVY,"center");txt(ctx,"ลงชื่อ .......................................",bx+sw/2,y+20,3.1,400,"#333","center");
+        txt(ctx,nm?`( ${nm} )`:"(.......................................)",bx+sw/2,y+27,3.1,400,"#333","center");txt(ctx,"วันที่ ......../......../........",bx+sw/2,y+36,3,400,"#333","center")})}
+    });doc.y+=50}
+  // ---- daily logs ----
+  if(o.logs){const ls=days.map(d=>S.logs.find(l=>l.id===S.pid+"|"+d)).filter(l=>l&&(l.work||l.issue||l.photos?.length));
+    if(ls.length){doc.newPage();{const y=doc.y;doc.add(ctx=>{txt(ctx,"บันทึกการทำงานประจำวัน",M,y,4.6,700,NAVY)});doc.y+=8}
+      const ctx0=document.createElement("canvas").getContext("2d");
+      for(const l of ls){const t=summarize(recs.filter(r=>r.date===l.date)).tot;
+        font(ctx0,3.2);const tl=l.work?wrap(ctx0,"งานที่ทำ: "+l.work,TW-6):[];const il=l.issue?wrap(ctx0,"หมายเหตุ: "+l.issue,TW-6):[];
+        const ph=(l.photos||[]).slice(0,10);const pr=Math.ceil(ph.length/5);const pw=(TW-6-4*3)/5,phh=pw*0.72;
+        const hgt=9+(tl.length+il.length)*4.8+(pr?pr*(phh+3)+1:0)+3;
+        doc.need(Math.min(hgt,doc.bottom-M-20));const y=doc.y;
+        doc.add(async ctx=>{rect(ctx,M,y,TW,hgt,null,GRID);rect(ctx,M,y,TW,7.5,SOFT);rect(ctx,M,y,1.2,7.5,NAVY);
+          txt(ctx,thLong(l.date),M+3,y+1.8,3.5,700,NAVY);txt(ctx,`แรงงาน ${t.people} คน  •  OT ${fmt(t.h)} ชม.  •  ค่าแรง ${fmt(t.t)} บาท`,PW-M-3,y+1.9,3.1,600,"#444","right");
+          let yy=y+9.5;tl.forEach(s=>{txt(ctx,s,M+3,yy,3.2);yy+=4.8});il.forEach(s=>{txt(ctx,s,M+3,yy,3.2,400,"#7a5a00");yy+=4.8});yy+=1;
+          for(let k=0;k<ph.length;k++){const px=M+3+(k%5)*(pw+3),py=yy+Math.floor(k/5)*(phh+3);if(py+phh>PH-13)break;await drawPhoto(ctx,ph[k],px,py,pw,phh,true)}
+        });doc.y+=hgt+3}
+    }}
+  // ---- monthly & project summary ----
+  if(o.months){doc.newPage();
+    const tbl=(title,cols,rows,total)=>{doc.need(20);let y=doc.y;doc.add(ctx=>txt(ctx,title,M,y,4.2,700,NAVY));doc.y+=7;
+      const cx=cols.reduce((a,c,i)=>(a.push(a[i]+c.w),a),[M]);const tw=cx[cx.length-1]-M;
+      const th=()=>{const y=doc.y;doc.add(ctx=>{rect(ctx,M,y,tw,7,NAVY);cols.forEach((c,i)=>txt(ctx,c.t,cx[i]+c.w/2,y+1.7,3,700,"#fff","center"))});doc.y+=7};th();
+      rows.forEach((r,ri)=>{if(doc.need(6.5))th();const y=doc.y;const tot=total&&ri===rows.length-1;doc.add(async ctx=>{if(tot)rect(ctx,M,y,tw,6.5,SOFT);else if(ri%2)rect(ctx,M,y,tw,6.5,"#f7f8fb");
+        cols.forEach((c,i)=>{const v=r[i];const al=c.a||"center";const x=al==="left"?cx[i]+1.5:al==="right"?cx[i+1]-1.5:cx[i]+c.w/2;txt(ctx,fit(ctx,v,c.w-2,3,tot?700:400),x,y+1.5,3,tot?700:400,tot?NAVY:"#1b2133",al)});
+        for(let i=0;i<cols.length;i++)rect(ctx,cx[i],y,cols[i].w,6.5,null,GRID)});doc.y+=6.5});doc.y+=6};
+    const upto=S.att.filter(r=>r.date<=sun);const ms=[...new Set(upto.map(r=>r.date.slice(0,7)))].sort();const all=summarize(upto).tot;
+    tbl(`สรุปค่าแรงรายเดือน (ตั้งแต่เริ่มโครงการ ${thDate(projStart())} ถึง ${thDate(sun)})`,[{t:"เดือน",w:60,a:"left"},{t:"แรงงาน (คน-วัน)",w:38},{t:"OT (ชม.)",w:30},{t:"ค่าแรงปกติ",w:42,a:"right"},{t:"ค่า OT",w:38,a:"right"},{t:"รวม (บาท)",w:45,a:"right"}],
+      [...ms.map(k=>{const t=summarize(upto.filter(r=>r.date.startsWith(k))).tot;return [thMonth(k),fmt(t.d),fmt(t.h),fmt(t.n),fmt(t.o),fmt(t.t)]}),["รวมทั้งโครงการ",fmt(all.d),fmt(all.h),fmt(all.n),fmt(all.o),fmt(all.t)]],true);
+    const smA=summarize(upto);const wa=sortedWorkers().filter(w=>smA.by.has(w.id));
+    tbl("สรุปค่าแรงสะสมรายคน (ทั้งโครงการ)",[{t:"ที่",w:12},{t:"ชื่อ – สกุล",w:70,a:"left"},{t:"ค่าแรง/วัน",w:26},{t:"วันทำงาน",w:26},{t:"OT (ชม.)",w:24},{t:"ค่าแรงปกติ",w:40,a:"right"},{t:"ค่า OT",w:35,a:"right"},{t:"รวม (บาท)",w:44,a:"right"}],
+      [...wa.map((w,i)=>{const x=smA.by.get(w.id);return [i+1,w.name,fmt(w.wage),fmt(x.d),fmt(x.h),fmt(x.n),fmt(x.o),fmt(x.t)]}),["",`รวม ${wa.length} คน`,"",fmt(all.d),fmt(all.h),fmt(all.n),fmt(all.o),fmt(all.t)]],true);
+  }
+  const footer=(ctx,i,n)=>{rect(ctx,M,PH-10.5,TW,0.3,GOLD);txt(ctx,"PRO CONSTRUCTION & DESIGN CO.,LTD.  •  "+(p.name||"")+"  •  DC v"+APP_VER,M,PH-9,2.8,400,"#777");txt(ctx,`หน้า ${i} / ${n}`,PW-M,PH-9,2.9,600,"#555","right")};
+  return await doc.render(prog,footer);
+}
+function makePdf(jpgs,w,h,wPt,hPt){
+  const enc=new TextEncoder();const parts=[];let len=0;const off=[];
+  const put=d=>{if(typeof d==="string")d=enc.encode(d);parts.push(d);len+=d.length};
+  const obj=(n,f)=>{off[n]=len;put(n+" 0 obj\n");f();put("\nendobj\n")};
+  put("%PDF-1.4\n%ÿÿ\n");const n=jpgs.length;const W=wPt.toFixed(2),H=hPt.toFixed(2);
+  obj(1,()=>put("<< /Type /Catalog /Pages 2 0 R >>"));
+  obj(2,()=>put(`<< /Type /Pages /Kids [${jpgs.map((_,i)=>(3+3*i)+" 0 R").join(" ")}] /Count ${n} >>`));
+  jpgs.forEach((j,i)=>{const p=3+3*i;
+    obj(p,()=>put(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /XObject << /Im${i} ${p+2} 0 R >> >> /Contents ${p+1} 0 R >>`));
+    const cs=`q ${W} 0 0 ${H} 0 0 cm /Im${i} Do Q`;
+    obj(p+1,()=>put(`<< /Length ${cs.length} >>\nstream\n${cs}\nendstream`));
+    obj(p+2,()=>{put(`<< /Type /XObject /Subtype /Image /Width ${w} /Height ${h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${j.length} >>\nstream\n`);put(j);put("\nendstream")});
+  });
+  const info=3+3*n;obj(info,()=>put("<< /Producer (PRO-CON DC App) /Creator (PRO-CON DC App) >>"));
+  const size=info+1;const xref=len;
+  let x=`xref\n0 ${size}\n0000000000 65535 f \n`;for(let k=1;k<size;k++)x+=String(off[k]).padStart(10,"0")+" 00000 n \n";
+  put(x);put(`trailer\n<< /Size ${size} /Root 1 0 R /Info ${info} 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+  const out=new Uint8Array(len);let o=0;for(const p of parts){out.set(p,o);o+=p.length}return out;
+}
+
+/* ================= boot ================= */
+(async function boot(){
+  await DB.init();try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+  if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
+  S.projects=await DB.all("projects");
+  if(S.projects.length===1)await openProject(S.projects[0].id);else render();
+  // preload the face models in the background so the first scan is quick
+  setTimeout(()=>ensureFace().catch(()=>{}),1500);
+})();
+</script>
+</body>
+</html>
