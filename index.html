@@ -207,7 +207,7 @@ textarea{min-height:84px;resize:vertical}
 
 <script>
 "use strict";
-const APP_VER="1.0";
+const APP_VER="1.1";
 const svgI=(d,s=18)=>`<svg class="ico" viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const P={
   cam:'<path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.8l1.4-2h6.6l1.4 2h1.8A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.6"/>',
@@ -297,9 +297,13 @@ async function saveL(l){l.updatedAt=Date.now();await DB.put("logs",clone(l));ups
 async function saveWk(w){await DB.put("weeks",clone(w));upsert(S.weeks,w)}
 async function loadProject(pid){
   const f=async s=>(await DB.all(s)).filter(x=>x.pid===pid);
-  [S.workers,S.att,S.logs,S.weeks]=await Promise.all(["workers","att","logs","weeks"].map(f));matcherDirty=true;
+  [S.att,S.logs,S.weeks]=await Promise.all(["att","logs","weeks"].map(f));
 }
+// worker registry is shared by all projects; w.site = the project the worker normally works at ("" = any)
+async function loadWorkers(){S.workers=await DB.all("workers");for(const w of S.workers){if(w.site===undefined){w.site=w.pid||"";await DB.put("workers",clone(w))}}matcherDirty=true}
 const sortedWorkers=()=>[...S.workers].sort((a,b)=>(a.no||0)-(b.no||0)||(a.createdAt||0)-(b.createdAt||0));
+const crew=(pid=S.pid)=>sortedWorkers().filter(w=>w.active!==false&&(!w.site||w.site===pid));
+const siteName=id=>S.projects.find(p=>p.id===id)?.name||"";
 const W=id=>S.workers.find(w=>w.id===id);
 const recId=(date,wid)=>S.pid+"|"+date+"|"+wid;
 const getRec=(date,wid)=>S.att.find(r=>r.id===recId(date,wid));
@@ -310,7 +314,7 @@ const isClosed=date=>!!weekRec(monday(date))?.closedAt;
 /* ================= pay rules ================= */
 function dayF(r){if(r.dayF!==""&&r.dayF!=null)return +r.dayF;return (r.in||r.out)?1:0}
 function otH(r){if(r.otH!==""&&r.otH!=null)return +r.otH;if(!r.otIn||!r.otOut)return 0;let m=mins(r.otOut)-mins(r.otIn);if(m<0)m+=1440;return Math.floor(m/30)/2}
-function otRateHr(r){const p=proj()||{};if(r.otHr!==""&&r.otHr!=null&&+r.otHr>0)return +r.otHr;return (+r.wage||0)/(+p.hoursPerDay||8)*(+p.otRate||1.5)}
+function otRateHr(r){const p=S.projects.find(x=>x.id===r.pid)||proj()||{};if(r.otHr!==""&&r.otHr!=null&&+r.otHr>0)return +r.otHr;return (+r.wage||0)/(+p.hoursPerDay||8)*(+p.otRate||1.5)}
 function pay(r){const d=dayF(r),h=otH(r);const n=(+r.wage||0)*d,o=h*otRateHr(r);return {d,h,n,o,t:n+o}}
 function summarize(recs){
   const by=new Map();const tot={d:0,h:0,n:0,o:0,t:0,people:0};
@@ -428,8 +432,8 @@ function setTop(){
   $("#backBtn").style.display=p?"":"none";
   const bar=$("#bar");bar.style.display=p?"flex":"none";
   if(p&&!bar.dataset.on){bar.dataset.on=1;
-    bar.innerHTML=`<button class="btn pri big" id="bScan">${I("scan",24)} สแกนหน้า</button><button class="btn" id="bReg">${I("uplus",22)} ลงทะเบียนคนงาน</button><button class="btn" id="bLog">${I("cam",22)} บันทึกงานวันนี้</button><button class="btn gold" id="bPdf">${I("pdf",22)} สรุปรอบ & PDF</button>`;
-    $("#bScan").onclick=()=>openScanner(suggestMode());$("#bReg").onclick=()=>editWorker(null);$("#bLog").onclick=()=>editLog(todayISO());$("#bPdf").onclick=()=>pdfDialog();
+    bar.innerHTML=`<button class="btn pri big" id="bScan">${I("scan",24)} สแกนหน้า</button><button class="btn" id="bMan">${I("hand",22)} ลงเวลาด้วยมือ / มาสาย</button><button class="btn" id="bLog">${I("cam",22)} บันทึกงานวันนี้</button><button class="btn gold" id="bPdf">${I("pdf",22)} สรุปรอบ & PDF</button>`;
+    $("#bScan").onclick=()=>openScanner(suggestMode());$("#bMan").onclick=()=>manualSheet(S.tab==="today"?S.date:todayISO());$("#bLog").onclick=()=>editLog(todayISO());$("#bPdf").onclick=()=>pdfDialog();
   }
   if(!p){bar.dataset.on="";bar.innerHTML=""}
 }
@@ -438,13 +442,20 @@ function banner(){return `<div class="banner blue">${I("phone")} ข้อมู
 function render(){setTop();if(!S.pid)return renderHome();renderProject()}
 
 async function renderHome(){
-  const all=await DB.all("att");
-  const cards=[...S.projects].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)).map(p=>{const rs=all.filter(r=>r.pid===p.id);let t=0;const save=S.pid;S.pid=p.id;rs.forEach(r=>t+=pay(r).t);S.pid=save;
-    return `<button class="pcard" data-open="${esc(p.id)}"><h3>${esc(p.name||"(ไม่มีชื่อ)")}</h3><p>${esc(p.project||"")}</p><p>เริ่มโครงการ: ${p.startDate?thDate(p.startDate):"-"}</p><div class="stat"><span class="chip all">${p.wcount||0} คนงาน</span><span class="chip ok">ค่าแรงสะสม ฿${fmt0(t)}</span></div></button>`}).join("");
-  $("#main").innerHTML=banner()+`<div class="grid">${cards}<button class="pcard pnew" id="newProj">＋ สร้างโครงการใหม่</button></div>
+  const all=await DB.all("att");S.allAtt=all;
+  const ht=S.homeTab||"projects";
+  const tabs=`<div class="tabs"><button data-ht="projects" class="${ht==="projects"?"on":""}">${I("book",17)} โครงการ (${S.projects.length})</button><button data-ht="workers" class="${ht==="workers"?"on":""}">${I("users",17)} ทะเบียนคนงาน (${S.workers.filter(w=>w.active!==false).length})</button></div>`;
+  let body;
+  if(ht==="workers")body=workersHtml(all);
+  else{const cards=[...S.projects].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)).map(p=>{let t=0;all.filter(r=>r.pid===p.id).forEach(r=>t+=pay(r).t);
+    return `<button class="pcard" data-open="${esc(p.id)}"><h3>${esc(p.name||"(ไม่มีชื่อ)")}</h3><p>${esc(p.project||"")}</p><p>เริ่มโครงการ: ${p.startDate?thDate(p.startDate):"-"}</p><div class="stat"><span class="chip all">${crew(p.id).length} คนงาน</span><span class="chip ok">ค่าแรงสะสม ฿${fmt0(t)}</span></div></button>`}).join("");
+    body=`<div class="grid">${cards}<button class="pcard pnew" id="newProj">＋ สร้างโครงการใหม่</button></div>`}
+  $("#main").innerHTML=banner()+tabs+body+`
   <div class="acts" style="margin-top:18px"><button class="btn" id="bkOut">${I("down")} สำรองข้อมูล (ไฟล์ .json)</button><button class="btn" id="bkIn">${I("up")} นำเข้าข้อมูลสำรอง</button><input type="file" id="bkFile" accept=".json,application/json" hidden></div>
-  <p class="hint" style="margin-top:22px">วิธีใช้: สร้างโครงการ → ลงทะเบียนคนงาน (ถ่ายรูปตัวเต็ม + รูปหน้า, ชื่อ, ค่าแรง) → ทุกเช้าให้คนงานยืนเรียงหน้ากระดาน กด “สแกนหน้า” → เลิกงาน/OT ทำแบบเดียวกัน → เช้าวันจันทร์กด “สรุปรอบ & PDF”</p><p class="hint" style="text-align:right">เวอร์ชัน ${APP_VER}</p>`;
-  $("#newProj").onclick=()=>editProject(null);
+  <p class="hint" style="margin-top:22px">วิธีใช้: ① แท็บ “โครงการ” สร้างโครงการ ② แท็บ “ทะเบียนคนงาน” ลงทะเบียนคนงาน (ถ่ายรูปตัวเต็ม + รูปหน้า, ชื่อ, ค่าแรง, ประจำโครงการไหน) ③ เปิดโครงการ ทุกเช้าให้คนงานยืนเรียงหน้ากระดาน กด “สแกนหน้า” → เลิกงาน/OT ทำแบบเดียวกัน ④ เช้าวันจันทร์กด “สรุปรอบ & PDF”</p><p class="hint" style="text-align:right">เวอร์ชัน ${APP_VER}</p>`;
+  document.querySelectorAll("[data-ht]").forEach(b=>b.onclick=()=>{S.homeTab=b.dataset.ht;render()});
+  if($("#newProj"))$("#newProj").onclick=()=>editProject(null);
+  bindWorkers();hydrate();
   $("#bkOut").onclick=exportBackup;$("#bkIn").onclick=()=>{$("#bkFile").value="";$("#bkFile").click()};$("#bkFile").onchange=e=>{const f=e.target.files[0];if(f)importBackup(f)};
   document.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openProject(b.dataset.open));
 }
@@ -457,12 +468,12 @@ function renderProject(){
   let html="";
   const pw=pendingWeek();
   if(pw)html+=`<div class="banner">${I("info")} ยังไม่ได้สรุปรอบที่ ${weekNo(pw)} (${weekLabel(pw)})<span class="sp"></span><button class="btn gold sm" id="doPend">${I("pdf")} สรุป & ออก PDF</button></div>`;
-  html+=`<div class="tabs">${[["today","clock","ลงเวลา"],["workers","users",`คนงาน (${S.workers.filter(w=>w.active!==false).length})`],["sum","money","สรุปค่าแรง"],["logs","book","บันทึกประจำวัน"]].map(([k,ic,l])=>`<button data-tab="${k}" class="${t===k?"on":""}">${I(ic,17)} ${l}</button>`).join("")}<span style="flex:1"></span><button class="ibtn" id="editProj">${I("gear")} ตั้งค่าโครงการ</button></div><div id="tabBody"></div>`;
+  html+=`<div class="tabs">${[["today","clock","ลงเวลา"],["sum","money","สรุปค่าแรง"],["logs","book","บันทึกประจำวัน"]].map(([k,ic,l])=>`<button data-tab="${k}" class="${t===k?"on":""}">${I(ic,17)} ${l}</button>`).join("")}<span style="flex:1"></span><button class="ibtn" id="editProj">${I("gear")} ตั้งค่าโครงการ</button></div><div id="tabBody"></div>`;
   $("#main").innerHTML=html;
   if(pw)$("#doPend").onclick=()=>pdfDialog(pw);
   document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{S.tab=b.dataset.tab;render()});
   $("#editProj").onclick=()=>editProject(p);
-  ({today:renderToday,workers:renderWorkers,sum:renderSum,logs:renderLogs})[t]();
+  ({today:renderToday,sum:renderSum,logs:renderLogs})[t]();
   hydrate();
 }
 
@@ -470,13 +481,13 @@ function renderProject(){
 function renderToday(){
   const d=S.date,isToday=d===todayISO();
   const recs=S.att.filter(r=>r.date===d);const rm=new Map(recs.map(r=>[r.wid,r]));
-  const ws=sortedWorkers().filter(w=>w.active!==false||rm.has(w.id));
-  const cnt=k=>recs.filter(r=>r[k]).length;const active=S.workers.filter(w=>w.active!==false).length;
+  const cw=new Set(crew().map(w=>w.id));const ws=sortedWorkers().filter(w=>cw.has(w.id)||rm.has(w.id));
+  const cnt=k=>recs.filter(r=>r[k]).length;const active=cw.size;
   const sm=summarize(recs).tot;
   let h=`<div class="dnav"><button class="ibtn" id="dPrev">${I("chevL")}</button><input type="date" id="dPick" value="${d}"><button class="ibtn" id="dNext">${I("chevR")}</button><span class="lbl">${isToday?"วันนี้ — ":""}${thLong(d)}</span>${isClosed(d)?`<span class="chip gray">${I("lock",13)} ปิดรอบแล้ว</span>`:""}</div>`;
   h+=`<div class="modes">${MK.map(k=>`<button class="mbtn" data-scan="${k}" style="background:${MODES[k].c}"><span class="mi">${I(MODES[k].ico,26)}</span>สแกน${MODES[k].t}<small>${cnt(k)} / ${k.startsWith("ot")?cnt("otIn")||"-":active} คน</small></button>`).join("")}</div>`;
   h+=`<div class="card"><h3>${I("users")} รายชื่อการลงเวลา<span class="chip ok">มาทำงาน ${sm.people} คน</span><span class="chip all">ค่าแรงวันนี้ ฿${fmt(sm.t)}</span><span class="sp"></span><button class="btn sm" id="manual">${I("hand")} ลงเวลาด้วยมือ / มาสาย</button></h3>`;
-  if(!ws.length)h+=`<div class="empty-state"><div class="big">${I("uplus",54)}</div>ยังไม่มีคนงาน<br>กด “ลงทะเบียนคนงาน” ด้านล่างเพื่อเริ่ม</div>`;
+  if(!ws.length)h+=`<div class="empty-state"><div class="big">${I("uplus",54)}</div>ยังไม่มีคนงานประจำโครงการนี้<br>ลงทะเบียนที่หน้าแรก แท็บ “ทะเบียนคนงาน” หรือกด “ลงเวลาด้วยมือ” → “คนงานใหม่” (กรณีมาสาย)</div>`;
   else{h+=`<div class="tw"><table class="t"><tr><th>ที่</th><th>รูป</th><th class="l">ชื่อ</th><th>เข้างาน</th><th>เลิกงาน</th><th>เข้า OT</th><th>ออก OT</th><th>OT ชม.</th><th class="r">ค่าแรง</th></tr>`;
     ws.forEach((w,i)=>{const r=rm.get(w.id);const pp=r?pay(r):null;
       h+=`<tr class="click ${r&&(r.in||r.out)?"":"off"}" data-rec="${w.id}"><td>${i+1}</td><td>${avatar(w)}</td><td class="l"><div class="nm">${esc(w.name)}</div><div class="sub">${esc(w.role||"")} ฿${fmt(w.wage)}/วัน</div></td>
@@ -491,13 +502,17 @@ function renderToday(){
   $("#manual").onclick=()=>manualSheet(d);
 }
 
-/* ---------- tab: workers ---------- */
-function renderWorkers(){
-  const ws=sortedWorkers();const tt=summarize(S.att).by;
-  let h=`<div class="wgrid">${ws.map(w=>`<button class="wcard ${w.active===false?"off":""}" data-w="${w.id}">${avatar(w,"av lg")}<div style="flex:1;min-width:0"><div class="nm" style="font-size:18px">${esc(w.name)}</div><div class="sub">${esc(w.role||"แรงงานรายวัน")}</div><div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap"><span class="chip all">฿${fmt(w.wage)}/วัน</span>${w.descs&&w.descs.length?`<span class="chip ok">${I("check",12)} ใบหน้า ${w.descs.length}</span>`:`<span class="chip red">ไม่มีข้อมูลใบหน้า</span>`}${w.active===false?'<span class="chip gray">พักงาน/ออกแล้ว</span>':""}</div><div class="sub" style="margin-top:4px">สะสม ${fmt(tt.get(w.id)?.d||0)} วัน • ฿${fmt0(tt.get(w.id)?.t||0)}</div></div></button>`).join("")}
+/* ---------- home: worker registry (shared by all projects) ---------- */
+function workersHtml(all){
+  const f=S.wFilter||"";const tt=summarize(all).by;
+  const ws=sortedWorkers().filter(w=>!f||(f==="-"?!w.site:f==="off"?w.active===false:w.site===f));
+  const opt=`<div class="dnav"><select id="wF" style="border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff"><option value="">ทุกโครงการ (${S.workers.length})</option>${S.projects.map(p=>`<option value="${esc(p.id)}" ${f===p.id?"selected":""}>ประจำ: ${esc(p.name)}</option>`).join("")}<option value="-" ${f==="-"?"selected":""}>ไม่ระบุโครงการ (ไปได้ทุกที่)</option><option value="off" ${f==="off"?"selected":""}>พักงาน / ออกแล้ว</option></select></div>`;
+  return opt+`<div class="wgrid">${ws.map(w=>`<button class="wcard ${w.active===false?"off":""}" data-w="${w.id}">${avatar(w,"av lg")}<div style="flex:1;min-width:0"><div class="nm" style="font-size:18px">${esc(w.name)}</div><div class="sub">${esc(w.role||"แรงงานรายวัน")}${w.site?" • "+esc(siteName(w.site)):" • ทุกโครงการ"}</div><div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap"><span class="chip all">฿${fmt(w.wage)}/วัน</span>${w.descs&&w.descs.length?`<span class="chip ok">${I("check",12)} ใบหน้า ${w.descs.length}</span>`:`<span class="chip red">ไม่มีข้อมูลใบหน้า</span>`}${w.active===false?'<span class="chip gray">พักงาน/ออกแล้ว</span>':""}</div><div class="sub" style="margin-top:4px">สะสมทุกโครงการ ${fmt(tt.get(w.id)?.d||0)} วัน • ฿${fmt0(tt.get(w.id)?.t||0)}</div></div></button>`).join("")}
   <button class="wcard wnew" id="wAdd">${I("uplus",26)} ลงทะเบียนคนงานใหม่</button></div>`;
-  $("#tabBody").innerHTML=h;
-  $("#wAdd").onclick=()=>editWorker(null);
+}
+function bindWorkers(){
+  if(!$("#wAdd"))return;
+  $("#wAdd").onclick=()=>editWorker(null);$("#wF").onchange=e=>{S.wFilter=e.target.value;render()};
   document.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>editWorker(W(b.dataset.w)));
 }
 
@@ -579,16 +594,16 @@ function editProject(p){
     Object.assign(p,{name:$("#pName").value.trim()||$("#pProject").value.trim()||"โครงการใหม่",project:$("#pProject").value.trim(),location:$("#pLoc").value.trim(),company:$("#pComp").value.trim(),startDate:$("#pStart").value,timeIn:$("#pIn").value,timeOut:$("#pOut").value,hoursPerDay:+$("#pHrs").value||8,otRate:+$("#pOT").value||1.5,thresh:+$("#pTh").value||0.5,preparer:$("#pPrep").value.trim()});
     try{await saveP(p);closeSheet();matcherDirty=true;if(n)openProject(p.id);else render()}catch(e){toast("บันทึกไม่สำเร็จ ("+(e.message||e)+")")}
   };
-  if(!n)sh.querySelector("#pDel").onclick=async()=>{if(!await ask(`ลบโครงการ “${p.name}” พร้อมคนงาน การลงเวลา และบันทึกทั้งหมด? ย้อนกลับไม่ได้ (แนะนำสำรองข้อมูลก่อน)`,"ลบถาวร"))return;
-    for(const [s,arr] of [["workers",S.workers],["att",S.att],["logs",S.logs],["weeks",S.weeks]])for(const x of arr)await DB.del(s,x.id);
+  if(!n)sh.querySelector("#pDel").onclick=async()=>{if(!await ask(`ลบโครงการ “${p.name}” พร้อมการลงเวลาและบันทึกประจำวันทั้งหมด? (ทะเบียนคนงานยังอยู่) ย้อนกลับไม่ได้ — แนะนำสำรองข้อมูลก่อน`,"ลบถาวร"))return;
+    for(const [s,arr] of [["att",S.att],["logs",S.logs],["weeks",S.weeks]])for(const x of arr)await DB.del(s,x.id);
+    for(const w of S.workers.filter(w=>w.site===p.id)){w.site="";await saveW(w)}
     await DB.del("projects",p.id);S.projects=S.projects.filter(x=>x.id!==p.id);closeSheet();S.pid=null;render()};
 }
-async function touchProject(){const p=proj();if(!p)return;p.wcount=S.workers.filter(w=>w.active!==false).length;await saveP(p)}
 
 /* ================= worker register / edit ================= */
 function editWorker(w,pre){
   const n=!w;
-  w=w?clone(w):{id:uid(),pid:S.pid,no:(S.workers.reduce((m,x)=>Math.max(m,x.no||0),0)+1),name:"",role:"",wage:proj().lastWage||"",otHr:"",phone:"",full:"",face:"",descs:[],active:true,createdAt:Date.now()};
+  w=w?clone(w):{id:uid(),site:S.pid||"",no:(S.workers.reduce((m,x)=>Math.max(m,x.no||0),0)+1),name:"",role:"",wage:S.lastWage||"",otHr:"",phone:"",full:"",face:"",descs:[],active:true,createdAt:Date.now()};
   const tmp={full:null,face:null,descs:[]};// new, not yet saved
   if(pre){tmp.face=pre.blob;tmp.descs.push(descArr(pre.desc))}
   const sh=openSheet(`<h2>${I(n?"uplus":"pen",24)} ${n?"ลงทะเบียนคนงานใหม่":"ข้อมูลคนงาน"}</h2>
@@ -600,8 +615,9 @@ function editWorker(w,pre){
    ${micField("wName","ชื่อ – นามสกุล / ชื่อเล่น",w.name,false,"เช่น นายสมชาย ใจดี (ชาย)")}
    <div class="row">${fld("wWage","ค่าแรง (บาท/วัน)",w.wage,"number","เช่น 400",'inputmode="decimal"')}${fld("wOt","ค่า OT (บาท/ชม.) — เว้นว่าง = คิดอัตโนมัติ",w.otHr,"number","อัตโนมัติ",'inputmode="decimal"')}</div>
    <div class="row">${micField("wRole","ตำแหน่ง / ประเภทงาน",w.role,false,"เช่น ช่างปูน, กรรมกร")}${fld("wPhone","เบอร์โทร",w.phone,"tel","")}</div>
-   ${n?`<div class="fld"><div class="opt"><label><input type="checkbox" id="wNow" ${new Date().getHours()<17?"checked":""}> ลงเวลาเข้างานวันนี้ด้วย (กรณีมาสาย / มาใหม่)</label><input type="time" id="wNowT" value="${hmNow()}" style="width:auto;flex:none"></div></div>`:
-   `<div class="fld"><div class="opt"><label><input type="checkbox" id="wAct" ${w.active!==false?"checked":""}> ยังทำงานอยู่ (ปิด = พักงาน/ลาออก ไม่ต้องสแกน)</label></div></div>`}
+   <div class="fld"><label>ประจำโครงการ</label><select id="wSite"><option value="">ไม่ระบุ (ไปได้ทุกโครงการ)</option>${S.projects.map(p=>`<option value="${esc(p.id)}" ${w.site===p.id?"selected":""}>${esc(p.name)}</option>`).join("")}</select></div>
+   ${n&&S.pid?`<div class="fld"><div class="opt"><label><input type="checkbox" id="wNow" ${new Date().getHours()<17?"checked":""}> ลงเวลาเข้างานวันนี้ด้วย (กรณีมาสาย / มาใหม่)</label><input type="time" id="wNowT" value="${hmNow()}" style="width:auto;flex:none"></div></div>`:
+   !n?`<div class="fld"><div class="opt"><label><input type="checkbox" id="wAct" ${w.active!==false?"checked":""}> ยังทำงานอยู่ (ปิด = พักงาน/ลาออก ไม่ต้องสแกน)</label></div></div>`:""}
    <div class="acts">${n?"":`<button class="btn del" id="wDel">${I("trash")} ลบ</button>${w.descs?.length?`<button class="btn" id="wReset">ล้างข้อมูลใบหน้า (${w.descs.length})</button>`:""}`}<span class="sp"></span><button class="btn" id="wC">ยกเลิก</button><button class="btn pri" id="wS">บันทึก</button></div>`);
   const st=sh.querySelector("#fSt");
   const setSt=(t,c)=>{st.textContent=t;st.className="fstat "+(c||"")};
@@ -639,17 +655,17 @@ function editWorker(w,pre){
     const name=$("#wName").value.trim();if(!name){toast("กรุณาใส่ชื่อ");return}
     if(!curDescs().length&&!(await ask("ยังไม่มีข้อมูลใบหน้า — คนนี้จะสแกนไม่ได้ ต้องลงเวลาด้วยมือ บันทึกเลยไหม?","บันทึก",false)))return;
     w.name=name;w.wage=+$("#wWage").value||0;w.otHr=$("#wOt").value===""?"":+$("#wOt").value;w.role=$("#wRole").value.trim();w.phone=$("#wPhone").value.trim();
-    if(!n)w.active=$("#wAct").checked;
+    if(!n)w.active=$("#wAct").checked;w.site=$("#wSite").value;delete w.pid;
     try{
       if(tmp.full)w.full=await DB.photo(tmp.full);if(tmp.face)w.face=await DB.photo(tmp.face);
-      w.descs=curDescs().slice(-12);await saveW(w);const p=proj();p.lastWage=w.wage;await touchProject();
-      if(n&&$("#wNow")?.checked){const t=$("#wNowT").value||hmNow();const r=getRec(todayISO(),w.id)||newRec(todayISO(),w);if(!r.in)r.in=t;await saveA(r)}
+      w.descs=curDescs().slice(-12);await saveW(w);S.lastWage=w.wage;
+      if(n&&S.pid&&$("#wNow")?.checked){const t=$("#wNowT").value||hmNow();const r=getRec(todayISO(),w.id)||newRec(todayISO(),w);if(!r.in)r.in=t;await saveA(r)}
       closeSheet();toast(n?`ลงทะเบียน ${w.name} แล้ว`:"บันทึกแล้ว");if(pre&&pre.onDone)pre.onDone(w);render();
     }catch(e){toast("บันทึกไม่สำเร็จ ("+(e.message||e)+")")}
   };
   if(!n){
-    sh.querySelector("#wDel").onclick=async()=>{const has=S.att.some(r=>r.wid===w.id);if(!await ask(has?`${w.name} มีประวัติการลงเวลาแล้ว — แนะนำให้ปิด “ยังทำงานอยู่” แทนการลบ ต้องการลบคนงานและประวัติทั้งหมด?`:`ลบ ${w.name}?`,"ลบ"))return;
-      for(const r of S.att.filter(r=>r.wid===w.id))await DB.del("att",r.id);S.att=S.att.filter(r=>r.wid!==w.id);await DB.del("workers",w.id);S.workers=S.workers.filter(x=>x.id!==w.id);matcherDirty=true;await touchProject();closeSheet();render()};
+    sh.querySelector("#wDel").onclick=async()=>{const mine=(await DB.all("att")).filter(r=>r.wid===w.id);const has=mine.length>0;if(!await ask(has?`${w.name} มีประวัติการลงเวลาแล้ว — แนะนำให้ปิด “ยังทำงานอยู่” แทนการลบ ต้องการลบคนงานและประวัติทั้งหมด?`:`ลบ ${w.name}?`,"ลบ"))return;
+      for(const r of mine)await DB.del("att",r.id);S.att=S.att.filter(r=>r.wid!==w.id);await DB.del("workers",w.id);S.workers=S.workers.filter(x=>x.id!==w.id);matcherDirty=true;closeSheet();render()};
     const rs=sh.querySelector("#wReset");if(rs)rs.onclick=async()=>{if(!await ask("ล้างข้อมูลใบหน้าเดิมทั้งหมด แล้วถ่ายใหม่?","ล้าง"))return;w.descs=[];tmp.descs=[];showCount();rs.remove()};
   }
 }
@@ -685,9 +701,9 @@ function manualSheet(date){
    <p class="hint">ใช้กรณีมาสาย สแกนหน้าไม่ติด หรือลืมสแกน • คนงานใหม่ให้กด “ลงทะเบียนคนงาน” แล้วติ๊ก “ลงเวลาเข้างานวันนี้ด้วย”</p>
    <div class="acts"><button class="btn" id="mNew">${I("uplus")} คนงานใหม่</button><span class="sp"></span><button class="btn" id="mC">ยกเลิก</button><button class="btn pri" id="mS">บันทึก</button></div>`);
   const list=()=>{const d=$("#mDate").value;mode=sh.querySelector("[name=mm]:checked").value;
-    sh.querySelector("#mList").innerHTML=sortedWorkers().filter(w=>w.active!==false).map(w=>{const r=getRec(d,w.id);const has=r&&r[mode];return `<label><input type="checkbox" value="${w.id}">${w.face?`<img data-ph="${esc(w.face)}">`:`<img>`}<span class="grow"><b>${esc(w.name)}</b><br><span class="sub">${has?`ลง${MODES[mode].t}แล้ว ${r[mode]}`:"ยังไม่ลง"+MODES[mode].t}</span></span></label>`}).join("")||`<div class="hint" style="padding:10px">ยังไม่มีคนงาน</div>`;hydrate(sh)};
+    const cw=crew();const others=sortedWorkers().filter(w=>w.active!==false&&!cw.includes(w));const row=w=>{const r=getRec(d,w.id);const has=r&&r[mode];return `<label><input type="checkbox" value="${w.id}">${w.face?`<img data-ph="${esc(w.face)}">`:`<img>`}<span class="grow"><b>${esc(w.name)}</b><br><span class="sub">${has?`ลง${MODES[mode].t}แล้ว ${r[mode]}`:"ยังไม่ลง"+MODES[mode].t}${cw.includes(w)?"":" • ประจำ "+esc(siteName(w.site))}</span></span></label>`};sh.querySelector("#mList").innerHTML=cw.map(row).join("")+(others.length?`<div class="hint" style="padding:6px 8px">คนงานจากโครงการอื่น (มาช่วยงาน)</div>`+others.map(row).join(""):"")||`<div class="hint" style="padding:10px">ยังไม่มีคนงาน</div>`;hydrate(sh)};
   list();sh.querySelectorAll("[name=mm]").forEach(i=>i.onchange=list);$("#mDate").onchange=list;
-  sh.querySelector("#mAll").onclick=e=>{e.preventDefault();const d=$("#mDate").value;sh.querySelectorAll("#mList input").forEach(c=>{const r=getRec(d,c.value);c.checked=!(r&&r[mode])})};
+  sh.querySelector("#mAll").onclick=e=>{e.preventDefault();const d=$("#mDate").value;const ids=new Set(crew().map(w=>w.id));[...sh.querySelectorAll("#mList input")].filter(c=>ids.has(c.value)).forEach(c=>{const r=getRec(d,c.value);c.checked=!(r&&r[mode])})};
   sh.querySelector("#mNew").onclick=()=>editWorker(null);
   sh.querySelector("#mC").onclick=closeSheet;
   sh.querySelector("#mS").onclick=async()=>{const d=$("#mDate").value,t=$("#mTime").value;const ids=[...sh.querySelectorAll("#mList input:checked")].map(c=>c.value);if(!ids.length){toast("ยังไม่ได้เลือกคนงาน");return}
@@ -782,7 +798,7 @@ function renderRes(){
   const items=[...SC.res.values()].map(r=>{const w=W(r.wid);const ex=getRec(date,r.wid);const has=ex&&ex[k];const keep=has&&(k==="in"||k==="otIn");
     return `<div class="ri"><img src="${r.url}"><div class="g"><b>${esc(w?.name||"?")}</b><span>${keep?`มีเวลา${MODES[k].t}แล้ว ${ex[k]} (ไม่ทับ)`:has?`อัปเดต ${ex[k]} → ${r.time}`:`${MODES[k].t} ${r.time}`} • ${Math.round((1-r.dist)*100)}%</span></div><button class="x" data-rmr="${r.wid}">✕</button></div>`}).join("");
   const unk=SC.unk.map(u=>`<div class="ri unk" data-unk="${u.id}"><img src="${u.url}"><div class="g"><b>ไม่รู้จัก</b><span>แตะเพื่อเลือกชื่อ / ลงทะเบียน</span></div><button class="x" data-rmu="${u.id}">✕</button></div>`).join("");
-  const active=S.workers.filter(w=>w.active!==false).length;const done=S.att.filter(r=>r.date===date&&r[k]).length;
+  const active=crew().length;const done=S.att.filter(r=>r.date===date&&r[k]).length;
   box.innerHTML=(items||unk)?items+unk:`<div style="opacity:.7;padding:10px;font-size:14px">ยังไม่มีผล • ลง${MODES[k].t}วันนี้แล้ว ${done}/${active} คน</div>`;
   $("#scN").textContent=SC.res.size?`(${SC.res.size} คน)`:"";
   const sv=$("#scSave");sv.disabled=!SC.res.size;sv.innerHTML=`${I("check")} บันทึก${MODES[k].t} ${SC.res.size||""} คน`;
@@ -829,7 +845,7 @@ async function importBackup(file){
     toast("กำลังนำเข้า…",20000);
     for(const [id,d] of Object.entries(j.photos||{})){const b=await (await fetch(d)).blob();await DB.put("photos",b,id)}
     for(const s of STORES)for(const x of j[s]||[])await DB.put(s,x);
-    S.projects=await DB.all("projects");render();toast("นำเข้าเรียบร้อย");
+    S.projects=await DB.all("projects");await loadWorkers();if(S.pid)await loadProject(S.pid);render();toast("นำเข้าเรียบร้อย");
   }catch(e){toast("นำเข้าไม่สำเร็จ: "+(e.message||e),4000)}
 }
 
@@ -1037,8 +1053,8 @@ function makePdf(jpgs,w,h,wPt,hPt){
 (async function boot(){
   await DB.init();try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
   if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
-  S.projects=await DB.all("projects");
-  if(S.projects.length===1)await openProject(S.projects[0].id);else render();
+  S.projects=await DB.all("projects");await loadWorkers();
+  render();
   // preload the face models in the background so the first scan is quick
   setTimeout(()=>ensureFace().catch(()=>{}),1500);
 })();
