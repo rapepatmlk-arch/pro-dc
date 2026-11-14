@@ -207,7 +207,7 @@ textarea{min-height:84px;resize:vertical}
 
 <script>
 "use strict";
-const APP_VER="1.2";
+const APP_VER="1.3";
 const svgI=(d,s=18)=>`<svg class="ico" viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const P={
   cam:'<path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.8l1.4-2h6.6l1.4 2h1.8A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.6"/>',
@@ -267,6 +267,7 @@ const thShort=iso=>{const d=parse(iso);return d.getDate()+" "+TH_M[d.getMonth()]
 const thLong=iso=>{const d=parse(iso);return "วัน"+TH_DF[d.getDay()]+"ที่ "+d.getDate()+" "+TH_MF[d.getMonth()]+" "+(d.getFullYear()+543)};
 const thMonth=ym=>{const [y,m]=ym.split("-").map(Number);return TH_MF[m-1]+" "+(y+543)};
 const fmt=n=>(Math.round((n||0)*100)/100).toLocaleString("en-US",{maximumFractionDigits:2});
+const fmt2=n=>(Math.round((n||0)*100)/100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmt0=n=>Math.round(n||0).toLocaleString("en-US");
 const weekLabel=mon=>{const s=addDays(mon,6);const a=parse(mon),b=parse(s);return a.getMonth()===b.getMonth()?`${a.getDate()} – ${b.getDate()} ${TH_M[b.getMonth()]} ${b.getFullYear()+543}`:`${thShort(mon)} – ${thShort(s)} ${b.getFullYear()+543}`};
 
@@ -274,10 +275,10 @@ let toastT;
 function toast(msg,ms=2600){let t=$(".toast");if(!t){t=document.createElement("div");t.className="toast";document.body.appendChild(t)}t.textContent=msg;t.style.display="block";clearTimeout(toastT);toastT=setTimeout(()=>t.style.display="none",ms)}
 
 /* ================= storage (IndexedDB on this device) ================= */
-const STORES=["projects","workers","att","logs","weeks"];
+const STORES=["projects","workers","att","logs","weeks","payees"];
 const DB={mem:{},urls:new Map(),
   async init(){STORES.concat("photos").forEach(s=>this.mem[s]=new Map());
-    try{this.idb=await new Promise((res,rej)=>{const r=indexedDB.open("pro-dc",1);r.onupgradeneeded=()=>{const d=r.result;STORES.forEach(s=>d.createObjectStore(s,{keyPath:"id"}));d.createObjectStore("photos")};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}catch(e){this.idb=null}},
+    try{this.idb=await new Promise((res,rej)=>{const r=indexedDB.open("pro-dc",2);r.onupgradeneeded=()=>{const d=r.result;STORES.forEach(s=>{if(!d.objectStoreNames.contains(s))d.createObjectStore(s,{keyPath:"id"})});if(!d.objectStoreNames.contains("photos"))d.createObjectStore("photos")};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}catch(e){this.idb=null}},
   tx(store,mode,fn){return new Promise((res,rej)=>{const t=this.idb.transaction(store,mode);const out=fn(t.objectStore(store));t.oncomplete=()=>res(out&&out.result);t.onerror=()=>rej(t.error)})},
   async all(s){if(!this.idb)return[...this.mem[s].values()].map(clone);return await this.tx(s,"readonly",o=>o.getAll())||[]},
   async put(s,v,k){if(!this.idb){this.mem[s].set(k??v.id,v);return}await this.tx(s,"readwrite",o=>k!==undefined?o.put(v,k):o.put(v))},
@@ -287,7 +288,7 @@ const DB={mem:{},urls:new Map(),
   async src(id){if(!id)return"";if(this.urls.has(id))return this.urls.get(id);const b=await this.blob(id);if(!b)return"";const u=URL.createObjectURL(b);this.urls.set(id,u);return u}
 };
 
-const S={projects:[],pid:null,tab:"today",date:todayISO(),sumTab:"week",weekOf:monday(todayISO()),month:todayISO().slice(0,7),workers:[],att:[],logs:[],weeks:[]};
+const S={payees:[],projects:[],pid:null,tab:"today",date:todayISO(),sumTab:"week",weekOf:monday(todayISO()),month:todayISO().slice(0,7),workers:[],att:[],logs:[],weeks:[]};
 const proj=()=>S.projects.find(p=>p.id===S.pid);
 function upsert(arr,o){const i=arr.findIndex(x=>x.id===o.id);if(i<0)arr.push(o);else arr[i]=o}
 async function saveP(p){p.updatedAt=Date.now();await DB.put("projects",clone(p));upsert(S.projects,p)}
@@ -300,7 +301,7 @@ async function loadProject(pid){
   [S.att,S.logs,S.weeks]=await Promise.all(["att","logs","weeks"].map(f));
 }
 // worker registry is shared by all projects; w.site = the project the worker normally works at ("" = any)
-async function loadWorkers(){S.workers=await DB.all("workers");for(const w of S.workers){if(w.site===undefined){w.site=w.pid||"";await DB.put("workers",clone(w))}}matcherDirty=true}
+async function loadWorkers(){S.payees=await DB.all("payees");S.workers=await DB.all("workers");for(const w of S.workers){if(w.site===undefined){w.site=w.pid||"";await DB.put("workers",clone(w))}}matcherDirty=true}
 const sortedWorkers=()=>[...S.workers].sort((a,b)=>(a.no||0)-(b.no||0)||(a.createdAt||0)-(b.createdAt||0));
 const crew=(pid=S.pid)=>sortedWorkers().filter(w=>w.active!==false&&(!w.site||w.site===pid));
 const siteName=id=>S.projects.find(p=>p.id===id)?.name||"";
@@ -505,14 +506,14 @@ function renderToday(){
 /* ---------- home: worker registry (shared by all projects) ---------- */
 function workersHtml(all){
   const f=S.wFilter||"";const tt=summarize(all).by;
-  const ws=sortedWorkers().filter(w=>!f||(f==="-"?!w.site:f==="off"?w.active===false:w.site===f));
-  const opt=`<div class="dnav"><select id="wF" style="border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff"><option value="">ทุกโครงการ (${S.workers.length})</option>${S.projects.map(p=>`<option value="${esc(p.id)}" ${f===p.id?"selected":""}>ประจำ: ${esc(p.name)}</option>`).join("")}<option value="-" ${f==="-"?"selected":""}>ไม่ระบุโครงการ (ไปได้ทุกที่)</option><option value="off" ${f==="off"?"selected":""}>พักงาน / ออกแล้ว</option></select></div>`;
-  return opt+`<div class="wgrid">${ws.map(w=>`<button class="wcard ${w.active===false?"off":""}" data-w="${w.id}">${avatar(w,"av lg")}<div style="flex:1;min-width:0"><div class="nm" style="font-size:18px">${esc(w.name)}</div><div class="sub">${esc(w.role||"แรงงานรายวัน")}${w.site?" • "+esc(siteName(w.site)):" • ทุกโครงการ"}</div><div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap"><span class="chip all">฿${fmt(w.wage)}/วัน</span>${w.descs&&w.descs.length?`<span class="chip ok">${I("check",12)} ใบหน้า ${w.descs.length}</span>`:`<span class="chip red">ไม่มีข้อมูลใบหน้า</span>`}${w.active===false?'<span class="chip gray">พักงาน/ออกแล้ว</span>':""}</div><div class="sub" style="margin-top:4px">สะสมทุกโครงการ ${fmt(tt.get(w.id)?.d||0)} วัน • ฿${fmt0(tt.get(w.id)?.t||0)}</div></div></button>`).join("")}
+  const ws=sortedWorkers().filter(w=>!f||(f==="-"?!w.site:f==="off"?w.active===false:f.startsWith("pay:")?(w.payee||"")===f.slice(4):w.site===f));
+  const opt=`<div class="dnav"><select id="wF" style="border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff"><option value="">ทุกโครงการ (${S.workers.length})</option>${S.projects.map(p=>`<option value="${esc(p.id)}" ${f===p.id?"selected":""}>ประจำ: ${esc(p.name)}</option>`).join("")}<option value="-" ${f==="-"?"selected":""}>ไม่ระบุโครงการ (ไปได้ทุกที่)</option><option value="off" ${f==="off"?"selected":""}>พักงาน / ออกแล้ว</option>${S.payees.map(x=>`<option value="pay:${esc(x.id)}" ${f==="pay:"+x.id?"selected":""}>จ่ายเงินให้: ${esc(x.name)} (${S.workers.filter(w=>w.payee===x.id).length})</option>`).join("")}<option value="pay:" ${f==="pay:"?"selected":""}>ยังไม่ระบุผู้รับเงิน</option></select><button class="btn sm" id="payBtn">${I("money")} ผู้รับเงิน / หัวหน้าชุด (${S.payees.length})</button></div>`;
+  return opt+`<div class="wgrid">${ws.map(w=>`<button class="wcard ${w.active===false?"off":""}" data-w="${w.id}">${avatar(w,"av lg")}<div style="flex:1;min-width:0"><div class="nm" style="font-size:18px">${esc(w.name)}</div><div class="sub">${esc(w.role||"แรงงานรายวัน")}${w.site?" • "+esc(siteName(w.site)):" • ทุกโครงการ"}</div><div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap"><span class="chip all">฿${fmt(w.wage)}/วัน</span>${w.payee&&payeeOf(w.payee)?`<span class="chip wait">จ่าย: ${esc(payeeOf(w.payee).name)}</span>`:""}${w.descs&&w.descs.length?`<span class="chip ok">${I("check",12)} ใบหน้า ${w.descs.length}</span>`:`<span class="chip red">ไม่มีข้อมูลใบหน้า</span>`}${w.active===false?'<span class="chip gray">พักงาน/ออกแล้ว</span>':""}</div><div class="sub" style="margin-top:4px">สะสมทุกโครงการ ${fmt(tt.get(w.id)?.d||0)} วัน • ฿${fmt0(tt.get(w.id)?.t||0)}</div></div></button>`).join("")}
   <button class="wcard wnew" id="wAdd">${I("uplus",26)} ลงทะเบียนคนงานใหม่</button></div>`;
 }
 function bindWorkers(){
   if(!$("#wAdd"))return;
-  $("#wAdd").onclick=()=>editWorker(null);$("#wF").onchange=e=>{S.wFilter=e.target.value;render()};
+  $("#wAdd").onclick=()=>editWorker(null);$("#wF").onchange=e=>{S.wFilter=e.target.value;render()};$("#payBtn").onclick=()=>payeeList();
   document.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>editWorker(W(b.dataset.w)));
 }
 
@@ -526,6 +527,7 @@ function weekMatrix(mon){
     h+=`<tr><td>${i+1}</td><td class="l nm">${esc(w.name)}</td><td>${fmt(w.wage)}</td>${days.map(d=>{const r=x.recs.find(r=>r.date===d);if(!r)return"<td>–</td>";const p=pay(r);return `<td class="${p.d?"pres":""} click" data-rd="${w.id}|${d}"><div class="tm">${p.d?(p.d===0.5?"½":"✓"):"–"}${r.in?" "+r.in:""}</div>${p.h?`<div class="ot">OT ${p.h}</div>`:""}</td>`}).join("")}<td>${fmt(x.d)}</td><td>${fmt(x.h)}</td><td class="r">${fmt(x.n)}</td><td class="r">${fmt(x.o)}</td><td class="r"><b>${fmt(x.t)}</b></td></tr>`});
   const dt=days.map(d=>summarize(recs.filter(r=>r.date===d)).tot);
   h+=`<tr class="tot"><td colspan="3" class="l">รวม</td>${dt.map(t=>`<td><div class="tm">${t.people} คน</div><div class="tm">${fmt0(t.t)}</div></td>`).join("")}<td>${fmt(sm.tot.d)}</td><td>${fmt(sm.tot.h)}</td><td class="r">${fmt(sm.tot.n)}</td><td class="r">${fmt(sm.tot.o)}</td><td class="r">${fmt(sm.tot.t)}</td></tr></table></div>`;
+  if(ws.length&&S.payees.length){const g=payGroups(sm);h+=`<div class="tw" style="margin-top:12px"><table class="t"><tr><th class="l">จ่ายเงินให้</th><th class="l">ธนาคาร</th><th class="l">เลขที่บัญชี</th><th>คนงาน</th><th class="r">ยอดจ่ายรอบนี้</th></tr>${g.map(x=>`<tr><td class="l nm">${esc(x.name)}</td><td class="l">${esc(x.bank||"-")}</td><td class="l">${esc(x.acct||"-")}</td><td>${x.n} คน</td><td class="r"><b>${fmt2(x.t)}</b></td></tr>`).join("")}</table></div>`}
   if(!ws.length)h=`<div class="empty-state">ยังไม่มีการลงเวลาในรอบนี้</div>`;
   return {html:h,sm};
 }
@@ -619,6 +621,36 @@ function editSettings(){
     await DB.put("projects",clone(CFG));matcherDirty=true;closeSheet();render();toast("บันทึกแล้ว",1200)};
 }
 
+/* ================= payees (who receives the money: crew leader or the worker) ================= */
+const BANKS=["กสิกรไทย","กรุงไทย","ไทยพาณิชย์","กรุงเทพ","กรุงศรีอยุธยา","ทหารไทยธนชาต (ttb)","ออมสิน","ธ.ก.ส.","ยูโอบี","ซีไอเอ็มบี","เกียรตินาคินภัทร","แลนด์ แอนด์ เฮ้าส์","พร้อมเพย์"];
+const payeeOf=id=>id?S.payees.find(x=>x.id===id):null;
+const payOpts=sel=>`<option value="">— ยังไม่ระบุ / จ่ายตัวคนงานเอง —</option>${S.payees.map(x=>`<option value="${esc(x.id)}" ${sel===x.id?"selected":""}>${esc(x.name)}${x.bank?" • "+esc(x.bank):""}</option>`).join("")}`;
+function payGroups(sm){const m=new Map();for(const [wid,x] of sm.by){if(!x.t)continue;const w=W(wid);const pid=w&&payeeOf(w.payee)?w.payee:"";let g=m.get(pid);if(!g){const py=payeeOf(pid);g={id:pid,name:py?py.name:"ไม่ระบุผู้รับเงิน",bank:py?.bank,acct:py?.acct,acctName:py?.acctName,n:0,t:0};m.set(pid,g)}g.n++;g.t+=x.t}
+  return [...m.values()].sort((a,b)=>(a.id?S.payees.findIndex(x=>x.id===a.id):999)-(b.id?S.payees.findIndex(x=>x.id===b.id):999))}
+function payeeList(){
+  const sh=openSheet(`<h2>${I("money",24)} ผู้รับเงิน / หัวหน้าชุด</h2><p class="hint" style="margin-top:-6px">ค่าแรงของคนงานแต่ละคนจะรวมจ่ายให้ผู้รับเงินที่เลือกไว้ตอนลงทะเบียน (เช่น หัวหน้าชุด) — แสดงในหน้าสรุปและ PDF</p>
+   <div class="wlist" id="pyL"></div><div class="acts"><button class="btn pri" id="pyNew">＋ เพิ่มผู้รับเงิน</button><span class="sp"></span><button class="btn" id="pyC">ปิด</button></div>`);
+  const draw=()=>{sh.querySelector("#pyL").innerHTML=S.payees.map(x=>`<button data-py="${esc(x.id)}"><span class="grow"><b>${esc(x.name)}</b> <span class="chip all">${S.workers.filter(w=>w.payee===x.id&&w.active!==false).length} คน</span><br><span class="sub">${esc(x.bank||"-")} • ${esc(x.acct||"-")}</span></span>${I("pen")}</button>`).join("")||`<div class="hint" style="padding:10px">ยังไม่มี — กด “เพิ่มผู้รับเงิน”</div>`;
+    sh.querySelectorAll("[data-py]").forEach(b=>b.onclick=()=>editPayee(payeeOf(b.dataset.py),()=>payeeList()))};
+  draw();sh.querySelector("#pyNew").onclick=()=>editPayee(null,()=>payeeList());sh.querySelector("#pyC").onclick=()=>{closeSheet();render()};
+}
+function editPayee(x,onDone,stack){
+  const n=!x;x=x?clone(x):{id:uid(),name:"",bank:"",acct:"",acctName:"",phone:"",createdAt:Date.now()};
+  const ov=document.createElement("div");ov.className="ov";ov.style.zIndex=60;
+  ov.innerHTML=`<div class="sheet" style="max-width:620px"><h2>${I("money",24)} ${n?"เพิ่มผู้รับเงิน":"แก้ไขผู้รับเงิน"}</h2>
+   ${micField("yName","ชื่อผู้รับเงิน (เช่น หัวหน้าชุด)",x.name,false,"เช่น นายสมปอง หัวหน้าชุด 1")}
+   <div class="row"><div class="fld"><label>ธนาคาร</label><input id="yBank" list="bankList" value="${esc(x.bank)}" placeholder="เลือกหรือพิมพ์"><datalist id="bankList">${BANKS.map(b=>`<option value="${b}">`).join("")}</datalist></div>${fld("yAcct","เลขที่บัญชี / พร้อมเพย์",x.acct,"text","xxx-x-xxxxx-x",'inputmode="numeric"')}</div>
+   <div class="row">${micField("yAName","ชื่อบัญชี (ถ้าไม่ตรงกับชื่อผู้รับเงิน)",x.acctName,false)}${fld("yPhone","เบอร์โทร",x.phone,"tel")}</div>
+   <div class="acts">${n?"":`<button class="btn del" id="yDel">${I("trash")} ลบ</button>`}<span class="sp"></span><button class="btn" id="yC">ยกเลิก</button><button class="btn pri" id="yS">บันทึก</button></div></div>`;
+  document.body.appendChild(ov);const q=s=>ov.querySelector(s);
+  q("#yC").onclick=()=>ov.remove();
+  q("#yS").onclick=async()=>{const name=q("#yName").value.trim();if(!name){toast("กรุณาใส่ชื่อผู้รับเงิน");return}
+    Object.assign(x,{name,bank:q("#yBank").value.trim(),acct:q("#yAcct").value.trim(),acctName:q("#yAName").value.trim(),phone:q("#yPhone").value.trim(),updatedAt:Date.now()});
+    await DB.put("payees",clone(x));upsert(S.payees,x);ov.remove();toast("บันทึกแล้ว",1200);onDone&&onDone(x)};
+  if(!n)q("#yDel").onclick=async()=>{const c=S.workers.filter(w=>w.payee===x.id);if(!await ask(`ลบ “${x.name}”?${c.length?` (คนงาน ${c.length} คนจะกลายเป็น “ยังไม่ระบุผู้รับเงิน”)`:""}`,"ลบ"))return;
+    for(const w of c){w.payee="";await saveW(w)}await DB.del("payees",x.id);S.payees=S.payees.filter(y=>y.id!==x.id);ov.remove();onDone&&onDone(x)};
+}
+
 /* ================= worker register / edit ================= */
 function editWorker(w,pre){
   const n=!w;
@@ -634,6 +666,7 @@ function editWorker(w,pre){
    ${micField("wName","ชื่อ – นามสกุล / ชื่อเล่น",w.name,false,"เช่น นายสมชาย ใจดี (ชาย)")}
    <div class="row">${fld("wWage","ค่าแรง (บาท/วัน)",w.wage,"number","เช่น 400",'inputmode="decimal"')}${fld("wOt","ค่า OT (บาท/ชม.) — เว้นว่าง = คิดอัตโนมัติ",w.otHr,"number","อัตโนมัติ",'inputmode="decimal"')}</div>
    <div class="row">${micField("wRole","ตำแหน่ง / ประเภทงาน",w.role,false,"เช่น ช่างปูน, กรรมกร")}${fld("wPhone","เบอร์โทร",w.phone,"tel","")}</div>
+   <div class="fld"><label>จ่ายเงินให้ (ผู้รับเงิน / หัวหน้าชุด)</label><div class="mic-row"><select id="wPay">${payOpts(w.payee)}</select><button type="button" class="btn sm" id="wPayNew">＋ เพิ่มผู้รับเงิน</button></div><div class="hint" id="wPayInfo"></div></div>
    <div class="fld"><label>ประจำโครงการ</label><select id="wSite"><option value="">ไม่ระบุ (ไปได้ทุกโครงการ)</option>${S.projects.map(p=>`<option value="${esc(p.id)}" ${w.site===p.id?"selected":""}>${esc(p.name)}</option>`).join("")}</select></div>
    ${n&&S.pid?`<div class="fld"><div class="opt"><label><input type="checkbox" id="wNow" ${new Date().getHours()<17?"checked":""}> ลงเวลาเข้างานวันนี้ด้วย (กรณีมาสาย / มาใหม่)</label><input type="time" id="wNowT" value="${hmNow()}" style="width:auto;flex:none"></div></div>`:
    !n?`<div class="fld"><div class="opt"><label><input type="checkbox" id="wAct" ${w.active!==false?"checked":""}> ยังทำงานอยู่ (ปิด = พักงาน/ลาออก ไม่ต้องสแกน)</label></div></div>`:""}
@@ -669,12 +702,15 @@ function editWorker(w,pre){
     }catch(e){console.error(e);setSt("ประมวลผลรูปไม่สำเร็จ: "+(e.message||e),"bad")}
   }
   drawBoxes();showCount();
+  const payInfo=()=>{const x=payeeOf($("#wPay").value);$("#wPayInfo").textContent=x?`${x.bank||"-"} • เลขที่บัญชี ${x.acct||"-"}${x.acctName&&x.acctName!==x.name?" • ชื่อบัญชี "+x.acctName:""}`:"จ่ายเงินสดให้คนงานเอง / ยังไม่ระบุ"};
+  $("#wPay").onchange=payInfo;payInfo();
+  sh.querySelector("#wPayNew").onclick=()=>editPayee(null,x=>{$("#wPay").innerHTML=payOpts(x.id);payInfo()},true);
   sh.querySelector("#wC").onclick=closeSheet;
   sh.querySelector("#wS").onclick=async()=>{
     const name=$("#wName").value.trim();if(!name){toast("กรุณาใส่ชื่อ");return}
     if(!curDescs().length&&!(await ask("ยังไม่มีข้อมูลใบหน้า — คนนี้จะสแกนไม่ได้ ต้องลงเวลาด้วยมือ บันทึกเลยไหม?","บันทึก",false)))return;
     w.name=name;w.wage=+$("#wWage").value||0;w.otHr=$("#wOt").value===""?"":+$("#wOt").value;w.role=$("#wRole").value.trim();w.phone=$("#wPhone").value.trim();
-    if(!n)w.active=$("#wAct").checked;w.site=$("#wSite").value;delete w.pid;
+    if(!n)w.active=$("#wAct").checked;w.site=$("#wSite").value;w.payee=$("#wPay").value;delete w.pid;
     try{
       if(tmp.full)w.full=await DB.photo(tmp.full);if(tmp.face)w.face=await DB.photo(tmp.face);
       w.descs=curDescs().slice(-12);await saveW(w);S.lastWage=w.wage;
@@ -946,7 +982,7 @@ async function buildWeekPdf(mon,o,prog){
   const logo=await loadImg("logo.jpg").catch(()=>null);
   const p=proj();const PW=297,PH=210,M=8.5,TW=PW-2*M;
   const days=[...Array(7)].map((_,i)=>addDays(mon,i)),sun=days[6];
-  const recs=recsBetween(mon,sun);const sm=summarize(recs);const ws=sortedWorkers().filter(w=>sm.by.has(w.id));
+  const recs=recsBetween(mon,sun);const sm=summarize(recs);const pIdx=id=>{const i=S.payees.findIndex(x=>x.id===id);return i<0?999:i};const ws=sortedWorkers().filter(w=>sm.by.has(w.id)).sort((a,b)=>pIdx(a.payee)-pIdx(b.payee));
   const no=weekNo(mon);const title="สรุปการทำงานแรงงานรายวัน (DC)";
   const header=(doc,pn)=>{
     if(pn===1){doc.add(ctx=>{drawLogo(ctx,logo,M,M,17);
@@ -971,7 +1007,12 @@ async function buildWeekPdf(mon,o,prog){
     days.forEach((d,i)=>{const c=4+i;txt(ctx,TH_DF[parse(d).getDay()],X[c]+C[c]/2,y+1.4,3,700,"#fff","center");txt(ctx,thShort(d),X[c]+C[c]/2,y+5.9,2.7,400,"#ffffffcc","center")});
     [["วัน",11],["OT ชม.",12],["ค่าแรงปกติ",13],["ค่า OT",14],["รวม (บาท)",15]].forEach(([t,c])=>txt(ctx,t,X[c]+C[c]/2,y+3.6,3,700,"#fff","center"))});doc.y+=HD};
   head();
+  const PGm=new Map(payGroups(sm).map(g=>[g.id,g]));let lastPay=null;
   ws.forEach((w,i)=>{
+    const pk=payeeOf(w.payee)?w.payee:"";
+    if(S.payees.length&&pk!==lastPay){lastPay=pk;const g=PGm.get(pk);if(doc.need(7+RH))head();const gy=doc.y;
+      doc.add(ctx=>{rect(ctx,M,gy,TW,7,"#fdf6ea",GRID);rect(ctx,M,gy,1.2,7,GOLD);txt(ctx,fit(ctx,`ชุด / จ่ายเงินให้: ${g?g.name:"ไม่ระบุผู้รับเงิน"}${g&&g.id?`   •   ${g.bank||"-"} ${g.acct||""}`:""}`,TW-70,3.1,700),M+3,gy+1.6,3.1,700,"#7a5a00");
+        if(g)txt(ctx,`${g.n} คน   •   รวม ${fmt2(g.t)} บาท`,PW-M-2,gy+1.6,3.1,700,"#7a5a00","right")});doc.y+=7}
     if(doc.need(RH))head();const y=doc.y;const x=sm.by.get(w.id);
     doc.add(async ctx=>{
       if(i%2)rect(ctx,M,y,TW,RH,"#f7f8fb");
@@ -1005,17 +1046,21 @@ async function buildWeekPdf(mon,o,prog){
       txt(ctx,fmt(sm.tot.n),X[14]-1.5,y+3.7,3.1,700,NAVY,"right");txt(ctx,fmt(sm.tot.o),X[15]-1.5,y+3.7,3.1,700,NAVY,"right");txt(ctx,fmt(sm.tot.t),X[16]-1.5,y+3.6,3.5,700,NAVY,"right");
       for(let c=0;c<C.length;c++)rect(ctx,X[c],y,C[c],11,null,GRID)});doc.y+=11}
   // summary + signatures
-  doc.y+=4;doc.need(52);{const y=doc.y;const ym=sun.slice(0,7);const moT=summarize(S.att.filter(r=>r.date>=ym+"-01"&&r.date<=sun)).tot;const alT=summarize(S.att.filter(r=>r.date<=sun)).tot;
-    doc.add(ctx=>{const bw=112;rect(ctx,M,y,bw,48,"#fbfcfe",GRID);rect(ctx,M,y,bw,7.5,NAVY);txt(ctx,`สรุปค่าแรงรอบที่ ${no}`,M+3,y+1.9,3.4,700,"#fff");
+  const PG=payGroups(sm).filter(()=>S.payees.length);const BH=48+(PG.length?6+PG.length*9:0);
+  doc.y+=4;doc.need(BH+4);{const y=doc.y;const ym=sun.slice(0,7);const moT=summarize(S.att.filter(r=>r.date>=ym+"-01"&&r.date<=sun)).tot;const alT=summarize(S.att.filter(r=>r.date<=sun)).tot;
+    doc.add(ctx=>{const bw=112;rect(ctx,M,y,bw,BH,"#fbfcfe",GRID);rect(ctx,M,y,bw,7.5,NAVY);txt(ctx,`สรุปค่าแรงรอบที่ ${no}`,M+3,y+1.9,3.4,700,"#fff");
       const L=[["จำนวนแรงงาน",`${sm.tot.people} คน`],["รวมแรงงาน",`${fmt(sm.tot.d)} แรง (คน-วัน)`],["รวมชั่วโมง OT",`${fmt(sm.tot.h)} ชม.`],["ค่าแรงปกติ",`${fmt(sm.tot.n)} บาท`],["ค่าล่วงเวลา (OT)",`${fmt(sm.tot.o)} บาท`]];
       L.forEach(([k,v],i)=>{txt(ctx,k,M+3,y+9.5+i*4.6,3.2,400,"#444");txt(ctx,v,M+bw-3,y+9.5+i*4.6,3.2,600,"#1b2133","right")});
       rect(ctx,M+2,y+33,bw-4,6.2,"#e8f6ee");txt(ctx,"รวมค่าแรงรอบนี้",M+4,y+34,3.6,700,"#1f8a4c");txt(ctx,fmt(sm.tot.t)+" บาท",M+bw-4,y+34,3.8,700,"#1f8a4c","right");
       txt(ctx,`สะสมเดือน${TH_MF[+ym.slice(5)-1]} (ถึง ${thDate(sun)})`,M+3,y+40.6,2.9,400,"#555");txt(ctx,fmt(moT.t)+" บาท",M+bw-3,y+40.6,2.9,600,"#1b2133","right");
       txt(ctx,`สะสมทั้งโครงการ (ตั้งแต่ ${thDate(projStart())})`,M+3,y+44.2,2.9,400,"#555");txt(ctx,fmt(alT.t)+" บาท",M+bw-3,y+44.2,2.9,600,"#1b2133","right");
+      if(PG.length){let yy=y+49;rect(ctx,M+2,yy,bw-4,0.3,GOLD);txt(ctx,"จ่ายเงินให้ (โอนเข้าบัญชี)",M+3,yy+1.2,3.1,700,NAVY);yy+=5.6;
+        PG.forEach(g=>{txt(ctx,fit(ctx,`${g.name}  (${g.n} คน)`,bw-40,3.2,700),M+3,yy,3.2,700);txt(ctx,fmt2(g.t)+" บาท",M+bw-3,yy,3.3,700,"#1f8a4c","right");
+          txt(ctx,fit(ctx,g.id?`${g.bank||"-"}   เลขที่บัญชี ${g.acct||"-"}${g.acctName&&g.acctName!==g.name?"   ชื่อบัญชี "+g.acctName:""}`:"จ่ายตรงให้คนงาน",bw-6,2.8),M+3,yy+4.1,2.8,400,"#555");yy+=9})}
       if(o.sig){const sx=M+bw+5,sw=(TW-bw-5-8)/3;[["ผู้จัดทำ",CFG.preparer],["ผู้ควบคุมงาน",p.supervisor],["ผู้อนุมัติ",""]].forEach(([role,nm],i)=>{const bx=sx+i*(sw+4);rect(ctx,bx,y,sw,48,null,GRID);
         txt(ctx,role,bx+sw/2,y+2.5,3.4,700,NAVY,"center");txt(ctx,"ลงชื่อ .......................................",bx+sw/2,y+20,3.1,400,"#333","center");
         txt(ctx,nm?`( ${nm} )`:"(.......................................)",bx+sw/2,y+27,3.1,400,"#333","center");txt(ctx,"วันที่ ......../......../........",bx+sw/2,y+36,3,400,"#333","center")})}
-    });doc.y+=50}
+    });doc.y+=BH+2}
   // ---- daily logs ----
   if(o.logs){const ls=days.map(d=>S.logs.find(l=>l.id===S.pid+"|"+d)).filter(l=>l&&(l.work||l.issue||l.photos?.length));
     if(ls.length){doc.newPage();{const y=doc.y;doc.add(ctx=>{txt(ctx,"บันทึกการทำงานประจำวัน",M,y,4.6,700,NAVY)});doc.y+=8}

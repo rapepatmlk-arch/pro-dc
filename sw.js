@@ -1,5 +1,5 @@
 // Offline cache: app page network-first (so updates arrive), face models/library cache-first.
-const V="dc-v1.2";
+const V="dc-v1.3";
 const HEAVY=["lib/face-api.js","models/ssd_mobilenetv1_model-weights_manifest.json","models/ssd_mobilenetv1_model.bin","models/face_landmark_68_model-weights_manifest.json","models/face_landmark_68_model.bin","models/face_recognition_model-weights_manifest.json","models/face_recognition_model.bin"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(["./","index.html","logo.jpg",...HEAVY])).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
