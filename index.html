@@ -196,6 +196,7 @@ textarea{min-height:84px;resize:vertical}
   <div class="logos"><img src="logo.jpg" alt="PRO-CON"></div>
   <div><h1 id="topTitle">ลงเวลาแรงงานรายวัน (DC)</h1><small id="topSub">PRO CONSTRUCTION & DESIGN</small></div>
   <div class="sp"></div>
+  <span class="tbtn" id="syncBadge" style="display:none;font-size:14px"></span>
   <button class="tbtn" id="backBtn" style="display:none">‹ โครงการทั้งหมด</button>
 </div>
 <div class="wrap" id="main"><div class="empty-state">กำลังเปิดแอป…</div></div>
@@ -205,9 +206,13 @@ textarea{min-height:84px;resize:vertical}
 <input type="file" id="libIn" accept="image/*" multiple hidden>
 <div id="layer"></div>
 
+<script src="lib/firebase-app-compat.js"></script>
+<script src="lib/firebase-auth-compat.js"></script>
+<script src="lib/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script>
 "use strict";
-const APP_VER="1.3";
+const APP_VER="2.0";
 const svgI=(d,s=18)=>`<svg class="ico" viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const P={
   cam:'<path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.8l1.4-2h6.6l1.4 2h1.8A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.6"/>',
@@ -276,7 +281,8 @@ function toast(msg,ms=2600){let t=$(".toast");if(!t){t=document.createElement("d
 
 /* ================= storage (IndexedDB on this device) ================= */
 const STORES=["projects","workers","att","logs","weeks","payees"];
-const DB={mem:{},urls:new Map(),
+const LocalDB={kind:"local",mem:{},urls:new Map(),
+  async photoKeys(){if(!this.idb)return[...this.mem.photos.keys()];return await this.tx("photos","readonly",o=>o.getAllKeys())||[]},
   async init(){STORES.concat("photos").forEach(s=>this.mem[s]=new Map());
     try{this.idb=await new Promise((res,rej)=>{const r=indexedDB.open("pro-dc",2);r.onupgradeneeded=()=>{const d=r.result;STORES.forEach(s=>{if(!d.objectStoreNames.contains(s))d.createObjectStore(s,{keyPath:"id"})});if(!d.objectStoreNames.contains("photos"))d.createObjectStore("photos")};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}catch(e){this.idb=null}},
   tx(store,mode,fn){return new Promise((res,rej)=>{const t=this.idb.transaction(store,mode);const out=fn(t.objectStore(store));t.oncomplete=()=>res(out&&out.result);t.onerror=()=>rej(t.error)})},
@@ -287,6 +293,71 @@ const DB={mem:{},urls:new Map(),
   async blob(id){if(!this.idb)return this.mem.photos.get(id);return await this.tx("photos","readonly",o=>o.get(id))},
   async src(id){if(!id)return"";if(this.urls.has(id))return this.urls.get(id);const b=await this.blob(id);if(!b)return"";const u=URL.createObjectURL(b);this.urls.set(id,u);return u}
 };
+let DB=LocalDB;
+
+/* ================= storage (Firebase cloud, shared by all iPads) =================
+   Same interface as LocalDB. Writes update the local cache at once and are queued by
+   Firestore while offline. Attendance is stored one document per project-day
+   (recs.<workerId>) to keep reads low; photos are stored as Bytes in "photos". */
+const ADMINS=["staff1@procon.app"];
+let USER=null;
+const isAdmin=()=>DB.kind!=="cloud"||(USER&&ADMINS.includes((USER.email||"").toLowerCase()));
+function needAdmin(){if(isAdmin())return true;toast("ทำรายการนี้ได้เฉพาะแอดมิน",3000);return false}
+const CloudDB={kind:"cloud",urls:new Map(),blobs:new Map(),cache:{},unsubs:[],pending:0,
+  COLS:["projects","workers","att","logs","weeks","payees","cfg"],
+  init(){this.fs=firebase.firestore();this.FV=firebase.firestore.FieldValue},
+  start(){
+    this.stop();this.COLS.forEach(c=>this.cache[c]=new Map());
+    return Promise.all(this.COLS.map(c=>new Promise(res=>{let first=true;
+      this.unsubs.push(this.fs.collection(c).onSnapshot(snap=>{
+        let remote=false;
+        snap.docChanges().forEach(ch=>{const d=ch.doc;if(!d.metadata.hasPendingWrites)remote=true;
+          if(c==="att"){const old=[...this.cache.att.keys()].filter(k=>k.startsWith(d.id+"|"));old.forEach(k=>this.cache.att.delete(k));
+            if(ch.type!=="removed"){const v=d.data();for(const [wid,r] of Object.entries(v.recs||{}))this.cache.att.set(d.id+"|"+wid,{...r,id:d.id+"|"+wid,pid:v.pid,date:v.date,wid})}}
+          else if(ch.type==="removed")this.cache[c].delete(d.id);else this.cache[c].set(d.id,this.decode(c,{...d.data(),id:d.id}))});
+        if(first){first=false;res()}else if(remote)onCloudChange();
+      },e=>{console.error(c,e);if(first){first=false;res()}toast("โหลดข้อมูลไม่ได้ ("+(e.code||e)+")",4000)}));
+    })));
+  },
+  stop(){this.unsubs.forEach(u=>u());this.unsubs=[]},
+  decode(c,v){if(c==="workers"&&Array.isArray(v.descs))v.descs=v.descs.map(x=>x&&x.v?x.v:x);return v},
+  encode(c,v){v=clone(v);delete v.id;if(c==="workers"&&Array.isArray(v.descs))v.descs=v.descs.map(a=>({v:a}));return v},
+  track(p){this.pending++;syncBadge();p.catch(e=>{console.error(e);toast(e&&e.code==="permission-denied"?"ทำรายการนี้ได้เฉพาะแอดมิน — ระบบย้อนข้อมูลกลับแล้ว":"บันทึกขึ้นคลาวด์ไม่สำเร็จ ("+(e&&e.code||e)+")",4000)}).finally(()=>{this.pending--;syncBadge()})},
+  async all(s){
+    if(s==="projects"){const out=[...this.cache.projects.values()].map(clone);const c=this.cache.cfg.get("main");if(c)out.push({...clone(c),id:"_cfg"});return out}
+    return [...(this.cache[s]||new Map()).values()].map(clone);
+  },
+  async put(s,v,k){
+    if(s==="photos")return this.putPhoto(k,v);
+    if(s==="projects"&&v.id==="_cfg"){this.cache.cfg.set("main",clone(v));this.track(this.fs.collection("cfg").doc("main").set(this.encode("cfg",v)));return}
+    if(s==="att"){const r=clone(v);const day=r.pid+"|"+r.date;this.cache.att.set(r.id,r);const rec={...r};delete rec.id;
+      this.track(this.fs.collection("att").doc(day).set({pid:r.pid,date:r.date,recs:{[r.wid]:rec}},{merge:true}));return}
+    this.cache[s].set(v.id,clone(v));this.track(this.fs.collection(s).doc(v.id).set(this.encode(s,v)));
+  },
+  async del(s,k){
+    if(s==="att"){const r=this.cache.att.get(k);this.cache.att.delete(k);if(!r)return;
+      this.track(this.fs.collection("att").doc(r.pid+"|"+r.date).update(new firebase.firestore.FieldPath("recs",r.wid),this.FV.delete()));return}
+    this.cache[s].delete(k);this.track(this.fs.collection(s).doc(k).delete());
+  },
+  async shrink(blob){let b=blob,q=0.8,sc=1;while(b.size>900000&&sc>0.3){const u=URL.createObjectURL(blob);try{const img=await loadImg(u);sc*=0.8;const c=document.createElement("canvas");c.width=Math.round(img.naturalWidth*sc);c.height=Math.round(img.naturalHeight*sc);c.getContext("2d").drawImage(img,0,0,c.width,c.height);b=await toBlob(c,q)}finally{URL.revokeObjectURL(u)}}return b},
+  async putPhoto(id,blob){blob=await this.shrink(blob);this.blobs.set(id,blob);const bytes=new Uint8Array(await blob.arrayBuffer());
+    this.track(this.fs.collection("photos").doc(id).set({data:firebase.firestore.Blob.fromUint8Array(bytes),type:blob.type||"image/jpeg",size:bytes.length,at:Date.now(),by:(USER&&USER.email)||""}));return id},
+  async photo(blob){const id="ph_"+uid();await this.putPhoto(id,blob);return id},
+  async blob(id){if(this.blobs.has(id))return this.blobs.get(id);const ref=this.fs.collection("photos").doc(id);let d=null;
+    try{d=await ref.get({source:"cache"})}catch(e){}if(!d||!d.exists){try{d=await ref.get()}catch(e){return null}}
+    if(!d.exists)return null;const v=d.data();const b=new Blob([v.data.toUint8Array()],{type:v.type||"image/jpeg"});this.blobs.set(id,b);return b},
+  src:LocalDB.src,
+};
+let cloudT=null;
+function onCloudChange(){clearTimeout(cloudT);cloudT=setTimeout(async()=>{await refreshState();if(SC)renderRes();else render()},350)}
+async function refreshState(){
+  const all=await DB.all("projects");await loadCfg(all);S.projects=all.filter(x=>x.id!=="_cfg");
+  S.payees=await DB.all("payees");S.workers=await DB.all("workers");matcherDirty=true;
+  if(S.pid){if(!S.projects.some(p=>p.id===S.pid))S.pid=null;else await loadProject(S.pid)}
+}
+function syncBadge(){const b=$("#syncBadge");if(!b)return;if(DB.kind!=="cloud"||!USER){b.style.display="none";return}b.style.display="";
+  const off=!navigator.onLine;b.innerHTML=CloudDB.pending?`${I("up",15)} รอส่ง ${CloudDB.pending}${off?" (ออฟไลน์)":""}`:off?`${I("info",15)} ออฟไลน์`:`${I("check",15)} ซิงก์แล้ว`}
+addEventListener("online",syncBadge);addEventListener("offline",syncBadge);
 
 const S={payees:[],projects:[],pid:null,tab:"today",date:todayISO(),sumTab:"week",weekOf:monday(todayISO()),month:todayISO().slice(0,7),workers:[],att:[],logs:[],weeks:[]};
 const proj=()=>S.projects.find(p=>p.id===S.pid);
@@ -439,7 +510,8 @@ function setTop(){
   if(!p){bar.dataset.on="";bar.innerHTML=""}
 }
 function suggestMode(){const h=new Date().getHours();if(h<11)return"in";if(h<17)return"out";const p=proj();const t=todayISO();const any=S.att.some(r=>r.date===t&&r.otIn&&!r.otOut);return any?"otOut":(h<18?"out":"otIn")}
-function banner(){return `<div class="banner blue">${I("phone")} ข้อมูลและรูปเก็บไว้ใน iPad เครื่องนี้ — เปิดจากไอคอนบนหน้าจอโฮมทุกครั้ง และกด “สำรองข้อมูล” (หน้าโครงการทั้งหมด) สัปดาห์ละครั้ง</div>`}
+function banner(){if(DB.kind==="cloud")return `<div class="banner blue">${I("check")} ข้อมูลซิงก์ร่วมกันทุกเครื่อง • ล็อกอิน: <b>${esc(USER&&USER.email)}</b>${isAdmin()?" (แอดมิน)":""}<span class="sp"></span><button class="btn sm" id="logoutBtn">ออกจากระบบ</button></div>${S.migrateInfo?`<div class="banner">${I("info")} iPad เครื่องนี้มีข้อมูลเดิมที่ยังไม่ได้ย้ายขึ้นคลาวด์ (${S.migrateInfo})<span class="sp"></span><button class="btn gold sm" id="migBtn">${I("up")} ย้ายขึ้นคลาวด์</button></div>`:""}`;
+  return `<div class="banner blue">${I("phone")} ข้อมูลและรูปเก็บไว้ใน iPad เครื่องนี้ — เปิดจากไอคอนบนหน้าจอโฮมทุกครั้ง และกด “สำรองข้อมูล” (หน้าโครงการทั้งหมด) สัปดาห์ละครั้ง</div>`}
 function render(){setTop();if(!S.pid)return renderHome();renderProject()}
 
 async function renderHome(){
@@ -457,6 +529,8 @@ async function renderHome(){
   document.querySelectorAll("[data-ht]").forEach(b=>b.onclick=()=>{S.homeTab=b.dataset.ht;render()});
   if($("#newProj"))$("#newProj").onclick=()=>editProject(null);
   bindWorkers();hydrate();
+  if($("#logoutBtn"))$("#logoutBtn").onclick=async()=>{if(CloudDB.pending&&!(await ask(`ยังมีข้อมูลรอส่งขึ้นคลาวด์ ${CloudDB.pending} รายการ — ออกจากระบบตอนนี้ข้อมูลอาจหาย ต่อเชื่อมเน็ตก่อนดีกว่า`,"ออกเลย")))return;CloudDB.stop();await firebase.auth().signOut()};
+  if($("#migBtn"))$("#migBtn").onclick=migrateToCloud;
   $("#cfgBtn").onclick=editSettings;$("#bkOut").onclick=exportBackup;$("#bkIn").onclick=()=>{$("#bkFile").value="";$("#bkFile").click()};$("#bkFile").onchange=e=>{const f=e.target.files[0];if(f)importBackup(f)};
   document.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openProject(b.dataset.open));
 }
@@ -598,7 +672,7 @@ function editProject(p){
     Object.assign(p,{name,work:$("#pWork").value.trim(),location:$("#pLoc").value.trim(),owner:$("#pOwner").value.trim(),supervisor:$("#pSup").value.trim(),company:$("#pComp").value.trim(),startDate:$("#pStart").value,endDate:$("#pEnd").value});delete p.project;
     try{await saveP(p);closeSheet();if(n)openProject(p.id);else render()}catch(e){toast("บันทึกไม่สำเร็จ ("+(e.message||e)+")")}
   };
-  if(!n)sh.querySelector("#pDel").onclick=async()=>{if(!await ask(`ลบโครงการ “${p.name}” พร้อมการลงเวลาและบันทึกประจำวันทั้งหมด? (ทะเบียนคนงานยังอยู่) ย้อนกลับไม่ได้ — แนะนำสำรองข้อมูลก่อน`,"ลบถาวร"))return;
+  if(!n)sh.querySelector("#pDel").onclick=async()=>{if(!needAdmin())return;if(!await ask(`ลบโครงการ “${p.name}” พร้อมการลงเวลาและบันทึกประจำวันทั้งหมด? (ทะเบียนคนงานยังอยู่) ย้อนกลับไม่ได้ — แนะนำสำรองข้อมูลก่อน`,"ลบถาวร"))return;
     for(const [s,arr] of [["att",S.att],["logs",S.logs],["weeks",S.weeks]])for(const x of arr)await DB.del(s,x.id);
     for(const w of S.workers.filter(w=>w.site===p.id)){w.site="";await saveW(w)}
     await DB.del("projects",p.id);S.projects=S.projects.filter(x=>x.id!==p.id);closeSheet();S.pid=null;render()};
@@ -617,7 +691,7 @@ function editSettings(){
    <p class="hint">ใช้กับทุกโครงการ • ค่า OT ต่อชั่วโมง = ค่าแรงต่อวัน ÷ ชั่วโมงทำงาน × อัตรา OT (เช่น 400 ÷ 8 × 1.5 = 75 บาท/ชม.) — กำหนดเป็นรายคนได้ในทะเบียนคนงาน • ชั่วโมง OT ปัดลงทีละ 30 นาที • ตัวเลขสีส้ม = เข้างานหลังเวลาปกติ</p>
    <div class="acts"><span class="sp"></span><button class="btn" id="cC">ยกเลิก</button><button class="btn pri" id="cS">บันทึก</button></div>`);
   sh.querySelector("#cC").onclick=closeSheet;
-  sh.querySelector("#cS").onclick=async()=>{Object.assign(CFG,{timeIn:$("#cIn").value||"08:00",timeOut:$("#cOut").value||"17:00",hoursPerDay:+$("#cHrs").value||8,otRate:+$("#cOT").value||1.5,thresh:+$("#cTh").value||0.5,preparer:$("#cPrep").value.trim()});
+  sh.querySelector("#cS").onclick=async()=>{if(!needAdmin())return;Object.assign(CFG,{timeIn:$("#cIn").value||"08:00",timeOut:$("#cOut").value||"17:00",hoursPerDay:+$("#cHrs").value||8,otRate:+$("#cOT").value||1.5,thresh:+$("#cTh").value||0.5,preparer:$("#cPrep").value.trim()});
     await DB.put("projects",clone(CFG));matcherDirty=true;closeSheet();render();toast("บันทึกแล้ว",1200)};
 }
 
@@ -644,10 +718,10 @@ function editPayee(x,onDone,stack){
    <div class="acts">${n?"":`<button class="btn del" id="yDel">${I("trash")} ลบ</button>`}<span class="sp"></span><button class="btn" id="yC">ยกเลิก</button><button class="btn pri" id="yS">บันทึก</button></div></div>`;
   document.body.appendChild(ov);const q=s=>ov.querySelector(s);
   q("#yC").onclick=()=>ov.remove();
-  q("#yS").onclick=async()=>{const name=q("#yName").value.trim();if(!name){toast("กรุณาใส่ชื่อผู้รับเงิน");return}
+  q("#yS").onclick=async()=>{if(!needAdmin())return;const name=q("#yName").value.trim();if(!name){toast("กรุณาใส่ชื่อผู้รับเงิน");return}
     Object.assign(x,{name,bank:q("#yBank").value.trim(),acct:q("#yAcct").value.trim(),acctName:q("#yAName").value.trim(),phone:q("#yPhone").value.trim(),updatedAt:Date.now()});
     await DB.put("payees",clone(x));upsert(S.payees,x);ov.remove();toast("บันทึกแล้ว",1200);onDone&&onDone(x)};
-  if(!n)q("#yDel").onclick=async()=>{const c=S.workers.filter(w=>w.payee===x.id);if(!await ask(`ลบ “${x.name}”?${c.length?` (คนงาน ${c.length} คนจะกลายเป็น “ยังไม่ระบุผู้รับเงิน”)`:""}`,"ลบ"))return;
+  if(!n)q("#yDel").onclick=async()=>{if(!needAdmin())return;const c=S.workers.filter(w=>w.payee===x.id);if(!await ask(`ลบ “${x.name}”?${c.length?` (คนงาน ${c.length} คนจะกลายเป็น “ยังไม่ระบุผู้รับเงิน”)`:""}`,"ลบ"))return;
     for(const w of c){w.payee="";await saveW(w)}await DB.del("payees",x.id);S.payees=S.payees.filter(y=>y.id!==x.id);ov.remove();onDone&&onDone(x)};
 }
 
@@ -702,9 +776,10 @@ function editWorker(w,pre){
     }catch(e){console.error(e);setSt("ประมวลผลรูปไม่สำเร็จ: "+(e.message||e),"bad")}
   }
   drawBoxes();showCount();
+  if(!n&&!isAdmin()){["#wWage","#wOt","#wPay"].forEach(q=>{const e=sh.querySelector(q);if(e){e.disabled=true;e.title="แก้ได้เฉพาะแอดมิน"}});sh.querySelector("#wPayNew").style.display="none"}
   const payInfo=()=>{const x=payeeOf($("#wPay").value);$("#wPayInfo").textContent=x?`${x.bank||"-"} • เลขที่บัญชี ${x.acct||"-"}${x.acctName&&x.acctName!==x.name?" • ชื่อบัญชี "+x.acctName:""}`:"จ่ายเงินสดให้คนงานเอง / ยังไม่ระบุ"};
   $("#wPay").onchange=payInfo;payInfo();
-  sh.querySelector("#wPayNew").onclick=()=>editPayee(null,x=>{$("#wPay").innerHTML=payOpts(x.id);payInfo()},true);
+  sh.querySelector("#wPayNew").onclick=()=>needAdmin()&&editPayee(null,x=>{$("#wPay").innerHTML=payOpts(x.id);payInfo()},true);
   sh.querySelector("#wC").onclick=closeSheet;
   sh.querySelector("#wS").onclick=async()=>{
     const name=$("#wName").value.trim();if(!name){toast("กรุณาใส่ชื่อ");return}
@@ -719,7 +794,7 @@ function editWorker(w,pre){
     }catch(e){toast("บันทึกไม่สำเร็จ ("+(e.message||e)+")")}
   };
   if(!n){
-    sh.querySelector("#wDel").onclick=async()=>{const mine=(await DB.all("att")).filter(r=>r.wid===w.id);const has=mine.length>0;if(!await ask(has?`${w.name} มีประวัติการลงเวลาแล้ว — แนะนำให้ปิด “ยังทำงานอยู่” แทนการลบ ต้องการลบคนงานและประวัติทั้งหมด?`:`ลบ ${w.name}?`,"ลบ"))return;
+    sh.querySelector("#wDel").onclick=async()=>{if(!needAdmin())return;const mine=(await DB.all("att")).filter(r=>r.wid===w.id);const has=mine.length>0;if(!await ask(has?`${w.name} มีประวัติการลงเวลาแล้ว — แนะนำให้ปิด “ยังทำงานอยู่” แทนการลบ ต้องการลบคนงานและประวัติทั้งหมด?`:`ลบ ${w.name}?`,"ลบ"))return;
       for(const r of mine)await DB.del("att",r.id);S.att=S.att.filter(r=>r.wid!==w.id);await DB.del("workers",w.id);S.workers=S.workers.filter(x=>x.id!==w.id);matcherDirty=true;closeSheet();render()};
     const rs=sh.querySelector("#wReset");if(rs)rs.onclick=async()=>{if(!await ask("ล้างข้อมูลใบหน้าเดิมทั้งหมด แล้วถ่ายใหม่?","ล้าง"))return;w.descs=[];tmp.descs=[];showCount();rs.remove()};
   }
@@ -745,7 +820,7 @@ function editRec(wid,date){
   sh.querySelectorAll("[data-view]").forEach(i=>i.onclick=()=>viewPhoto(i.dataset.view));
   sh.querySelector("#rC").onclick=closeSheet;
   sh.querySelector("#rS").onclick=async()=>{collect();try{await saveA(r);closeSheet();render();toast("บันทึกแล้ว",1200)}catch(e){toast("บันทึกไม่สำเร็จ")}};
-  if(ex)sh.querySelector("#rDel").onclick=async()=>{if(!await ask("ลบการลงเวลาของวันนี้?","ลบ"))return;await DB.del("att",r.id);S.att=S.att.filter(x=>x.id!==r.id);closeSheet();render()};
+  if(ex)sh.querySelector("#rDel").onclick=async()=>{if(!needAdmin())return;if(!await ask("ลบการลงเวลาของวันนี้?","ลบ"))return;await DB.del("att",r.id);S.att=S.att.filter(x=>x.id!==r.id);closeSheet();render()};
 }
 function manualSheet(date){
   let mode=suggestMode();
@@ -784,7 +859,7 @@ function editLog(date){
   draw();
   sh.querySelector("#lC").onclick=closeSheet;
   sh.querySelector("#lS").onclick=async()=>{l.work=$("#lWork").value.trim();l.issue=$("#lIssue").value.trim();try{await saveL(l);closeSheet();if(S.tab!=="logs")S.tab="logs";render();toast("บันทึกแล้ว",1200)}catch(e){toast("บันทึกไม่สำเร็จ")}};
-  if(ex)sh.querySelector("#lDel").onclick=async()=>{if(!await ask("ลบบันทึกวันนี้?","ลบ"))return;await DB.del("logs",l.id);S.logs=S.logs.filter(x=>x.id!==l.id);closeSheet();render()};
+  if(ex)sh.querySelector("#lDel").onclick=async()=>{if(!needAdmin())return;if(!await ask("ลบบันทึกวันนี้?","ลบ"))return;await DB.del("logs",l.id);S.logs=S.logs.filter(x=>x.id!==l.id);closeSheet();render()};
 }
 
 /* ================= face scanner ================= */
@@ -961,7 +1036,7 @@ function pdfDialog(mon){
   const upd=()=>{const t=summarize(recsBetween(m,addDays(m,6))).tot;const wr=weekRec(m);const ended=addDays(m,6)<todayISO();
     $("#xL").textContent=`รอบที่ ${weekNo(m)} • ${weekLabel(m)}`;
     $("#xSum").innerHTML=`แรงงาน <b>${t.people}</b> คน • <b>${fmt(t.d)}</b> แรง • OT <b>${fmt(t.h)}</b> ชม. • รวม <b style="color:var(--navy);font-size:19px">฿${fmt(t.t)}</b> ${wr?.closedAt?`<span class="chip gray">ปิดรอบแล้ว</span>`:ended?'<span class="chip wait">ยังไม่ปิดรอบ</span>':'<span class="chip ok">รอบปัจจุบัน (ยังไม่จบสัปดาห์)</span>'}`;
-    $("#xCloseF").style.display=ended&&!wr?.closedAt?"":"none";$("#xOut").innerHTML="";const b=$("#xGo");b.className="btn gold";b.innerHTML=`${I("pdf")} สร้าง PDF`;b.onclick=go};
+    $("#xCloseF").style.display=ended&&!wr?.closedAt&&isAdmin()?"":"none";$("#xOut").innerHTML="";const b=$("#xGo");b.className="btn gold";b.innerHTML=`${I("pdf")} สร้าง PDF`;b.onclick=go};
   $("#xP").onclick=()=>{m=addDays(m,-7);upd()};$("#xN").onclick=()=>{m=addDays(m,7);upd()};
   sh.querySelector("#xC").onclick=closeSheet;
   async function go(){
@@ -1114,14 +1189,60 @@ function makePdf(jpgs,w,h,wPt,hPt){
   const out=new Uint8Array(len);let o=0;for(const p of parts){out.set(p,o);o+=p.length}return out;
 }
 
+/* ================= login + migration ================= */
+function renderLogin(msg){
+  setTop();$("#bar").style.display="none";syncBadge();
+  $("#main").innerHTML=`<div class="card" style="max-width:460px;margin:30px auto"><h3>${I("lock")} เข้าสู่ระบบ</h3>
+   <p class="hint" style="margin-top:-4px">ใช้บัญชีที่แอดมินสร้างให้ (เช่น staff2) — ข้อมูลจะซิงก์ร่วมกันทุก iPad</p>
+   ${fld("lgEmail","ชื่อผู้ใช้ (เช่น staff1)",(()=>{try{return localStorage.getItem("dc-user")||""}catch(e){return""}})(),"text","พิมพ์ชื่อผู้ใช้ที่นี่",'autocapitalize="off" autocorrect="off" autocomplete="username"')}
+   ${fld("lgPass","รหัสผ่าน","","password","",'autocomplete="current-password"')}
+   <div class="hint" id="lgMsg" style="color:var(--red)">${esc(msg||"")}</div>
+   <div class="acts"><span class="sp"></span><button class="btn pri big" id="lgGo">เข้าสู่ระบบ</button></div></div>
+   <p class="hint" style="text-align:center">เวอร์ชัน ${APP_VER}</p>`;
+  const go=async()=>{let e=$("#lgEmail").value.trim().toLowerCase();if(e&&!e.includes("@"))e+="@procon.app";const pw=$("#lgPass").value;if(!e){$("#lgMsg").textContent="กรุณาพิมพ์ชื่อผู้ใช้ในช่องแรก (เช่น staff1)";$("#lgEmail").focus();return}if(!pw){$("#lgMsg").textContent="กรุณาใส่รหัสผ่าน";$("#lgPass").focus();return}
+    try{localStorage.setItem("dc-user",e.replace("@procon.app",""))}catch(_){}
+    $("#lgGo").disabled=true;$("#lgMsg").textContent="กำลังเข้าสู่ระบบ…";
+    try{await firebase.auth().signInWithEmailAndPassword(e,pw)}catch(err){$("#lgGo").disabled=false;const c=err&&err.code||"";
+      $("#lgMsg").textContent=/invalid|wrong-password|user-not-found/.test(c)?"อีเมลหรือรหัสผ่านไม่ถูกต้อง":c==="auth/network-request-failed"?"ไม่มีอินเทอร์เน็ต — การเข้าสู่ระบบครั้งแรกต้องต่อเน็ต":c==="auth/too-many-requests"?"ลองผิดหลายครั้ง กรุณารอสักครู่":"เข้าสู่ระบบไม่สำเร็จ ("+c+")"}};
+  $("#lgGo").onclick=go;$("#lgPass").onkeydown=e=>{if(e.key==="Enter")go()};
+}
+async function localSummary(){
+  try{if(localStorage.getItem("dc-migrated"))return""}catch(e){}
+  const w=(await LocalDB.all("workers")).length,a=(await LocalDB.all("att")).length,p=(await LocalDB.all("projects")).filter(x=>x.id!=="_cfg").length;
+  return (w||a||p)?`${p} โครงการ • ${w} คนงาน • ${a} รายการลงเวลา`:"";
+}
+async function migrateToCloud(){
+  if(!needAdmin())return;
+  if(!await ask(`ย้ายข้อมูลเดิมใน iPad เครื่องนี้ (${S.migrateInfo}) ขึ้นคลาวด์ เพื่อให้ทุกเครื่องเห็น? (ข้อมูลที่ id ซ้ำจะถูกแทนที่ / ข้อมูลในเครื่องยังอยู่)`,"ย้ายข้อมูล",false))return;
+  try{
+    const keys=await LocalDB.photoKeys();let i=0;
+    for(const k of keys){const b=await LocalDB.blob(k);if(b)await CloudDB.putPhoto(k,b);if(++i%5===0)toast(`กำลังส่งรูป ${i}/${keys.length}…`,20000)}
+    for(const st of STORES)for(const x of await LocalDB.all(st))await CloudDB.put(st,x);
+    try{localStorage.setItem("dc-migrated","1")}catch(e){}S.migrateInfo="";
+    await refreshState();render();toast("ย้ายข้อมูลแล้ว — ข้อมูลจะทยอยขึ้นคลาวด์ (ดูสถานะมุมขวาบน)",5000);
+  }catch(e){console.error(e);toast("ย้ายข้อมูลไม่สำเร็จ: "+(e.message||e),5000)}
+}
+
 /* ================= boot ================= */
 (async function boot(){
-  await DB.init();try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+  await LocalDB.init();try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
   if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
+  setTimeout(()=>ensureFace().catch(()=>{}),1500);// preload the face models so the first scan is quick
+  if(window.firebase&&window.FIREBASE_CONFIG){
+    firebase.initializeApp(FIREBASE_CONFIG);
+    try{await firebase.firestore().enablePersistence({synchronizeTabs:true})}catch(e){console.warn("persistence",e&&e.code)}
+    CloudDB.init();DB=CloudDB;
+    firebase.auth().onAuthStateChanged(async u=>{
+      USER=u;
+      if(!u){CloudDB.stop();S.pid=null;renderLogin();return}
+      $("#main").innerHTML=`<div class="empty-state">กำลังโหลดข้อมูล…</div>`;
+      await CloudDB.start();S.migrateInfo=await localSummary();await refreshState();syncBadge();render();
+    });
+    return;
+  }
+  // no cloud config: data stays on this device only
   {const all=await DB.all("projects");await loadCfg(all);S.projects=all.filter(x=>x.id!=="_cfg")}await loadWorkers();
   render();
-  // preload the face models in the background so the first scan is quick
-  setTimeout(()=>ensureFace().catch(()=>{}),1500);
 })();
 </script>
 </body>
