@@ -212,7 +212,7 @@ textarea{min-height:84px;resize:vertical}
 <script src="firebase-config.js"></script>
 <script>
 "use strict";
-const APP_VER="2.2";
+const APP_VER="2.3";
 const svgI=(d,s=18)=>`<svg class="ico" viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const P={
   cam:'<path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.8l1.4-2h6.6l1.4 2h1.8A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.6"/>',
@@ -465,43 +465,41 @@ function matchFaces(dets){
 function similarWorker(desc,exceptId){const M=getMatcher();let best=null;for(const x of M){if(x.wid===exceptId)continue;const m=bestDist(desc,x.ds);if(m<thresh()&&(!best||m<best.m))best={wid:x.wid,m}}return best}
 
 /* ================= dictation (iPad keyboard mic fallback) ================= */
-/* Dictation on iPad Safari:
-   - a recognizer that has ended cannot be started again, so every new listening session gets a
-     FRESH recognizer, created inside the tap;
-   - starting a new one while the old one is still alive fails silently, so tapping another field's
-     mic while still listening just moves the target field; tapping the same mic again stops;
-   - iPad sometimes ends without marking text "final", so the last heard text is kept on end. */
-const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let srRec=null,srOn=false,srTmp="",srLast=0,srBtn=null,srTarget=null;
+/* Dictation on iPad Safari (seen on a real iPad with the v2.3 log): the FIRST listening session on
+   a page works, but any later session opens the mic yet never hears speech. So ONE continuous session
+   is started on the first mic tap and kept alive for the whole time the app is open:
+   tapping a mic points it at that field, tapping the lit mic again pauses (speech is ignored),
+   closing a form also pauses. Text is written into the field while speaking. */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let srRec=null,srOn=false,srFull="",srUsed=0,srBase="",srBtn=null,srTarget=null;
+// srFull = all text heard in this session; srUsed = part of it that belongs to earlier fields;
+// srBase = what the current field contained before it started listening
 const srPart=()=>srTarget?.closest(".fld")?.querySelector(".partial");
-function srPut(t){const input=srTarget;t=(t||"").trim();if(!t||!input||!input.isConnected)return;const v=input.value;input.value=(v&&!/\s$/.test(v)?v+" ":v)+t}
-function srIdle(){srOn=false;document.querySelectorAll(".mic.on").forEach(b=>b.classList.remove("on"));document.querySelectorAll(".partial").forEach(p=>p.textContent="")}
+function srAll(e){let s="";for(let i=0;i<e.results.length;i++)s+=e.results[i][0].transcript;return s}
+function srWrite(){const input=srTarget;if(!input||!input.isConnected)return;const seg=srFull.slice(srUsed).trim();
+  input.value=seg?(srBase&&!/\s$/.test(srBase)?srBase+" ":srBase)+seg:srBase}
+function srAim(btn,input){ // point the running session at a field (null = pause)
+  srUsed=srFull.length;document.querySelectorAll(".mic.on").forEach(b=>b.classList.remove("on"));document.querySelectorAll(".partial").forEach(p=>p.textContent="");
+  srBtn=btn;srTarget=input;srBase=input?input.value:"";
+  if(btn){btn.classList.add("on");const p=srPart();if(p)p.textContent="🎙 กำลังฟัง… พูดได้เลย"}
+}
+function srIdle(){srOn=false;srRec=null;srAim(null,null)}
 function srNew(){
-  const r=new SR();r.lang="th-TH";r.interimResults=true;r.continuous=false;srTmp="";
-  r.onstart=()=>{if(srRec!==r)return;srLast=Date.now();const p=srPart();if(p)p.textContent="🎙 กำลังฟัง… พูดได้เลย"};
-  r.onresult=e=>{if(srRec!==r)return;srLast=Date.now();let fin="",tmp="";
-    for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)fin+=t;else tmp+=t}
-    srTmp=tmp;const part=srPart();if(part)part.textContent=tmp?"🎙 "+tmp:"🎙 กำลังฟัง…";if(fin)srPut(fin)};
+  const r=new SR();r.lang="th-TH";r.interimResults=true;r.continuous=true;
+  r.onresult=e=>{if(srRec!==r)return;srFull=srAll(e);if(srTarget)srWrite()};
   r.onerror=e=>{if(srRec!==r)return;const c=e.error;
     if(c==="not-allowed"||c==="service-not-allowed")toast("ใช้ไมค์ในหน้านี้ไม่ได้ — แตะช่องแล้วกดไมค์บนแป้นพิมพ์ iPad แทน",3500);
     else if(c!=="no-speech"&&c!=="aborted")toast("ฟังเสียงไม่สำเร็จ ("+c+") — ลองกดไมค์อีกครั้ง",3000)};
-  r.onend=()=>{if(srRec!==r)return;if(srTmp)srPut(srTmp);srTmp="";srRec=null;srIdle()};
+  r.onend=()=>{if(srRec!==r)return;srIdle()};
   return r;
 }
-function srStop(){if(srRec&&srOn){try{srRec.stop()}catch(e){}}}
+function srStop(){if(srOn)srAim(null,null)} // pause only: a new session would not hear anything on iPad
 function micClick(btn){
   const input=btn.parentElement.querySelector("input,textarea");
   if(!SR){input.focus();toast("แตะปุ่ม 🎤 บนแป้นพิมพ์ iPad แล้วพูดได้เลย",3200);return}
-  // a session that has heard nothing for a while is treated as dead (iPad sometimes never sends "end")
-  if(srOn&&srRec&&Date.now()-srLast>8000){const old=srRec;srRec=null;try{old.abort()}catch(e){}srIdle()}
-  if(srOn&&srRec){
-    if(srBtn===btn){srStop();return}
-    if(srTmp){srPut(srTmp);srTmp=""}
-    if(srBtn)srBtn.classList.remove("on");const op=srPart();if(op)op.textContent="";
-    srBtn=btn;srTarget=input;btn.classList.add("on");const p=srPart();if(p)p.textContent="🎙 กำลังฟัง… พูดได้เลย";return;
-  }
-  srBtn=btn;srTarget=input;btn.classList.add("on");
-  const r=srNew();srRec=r;srLast=Date.now();
-  try{r.start();srOn=true}catch(e){srRec=null;btn.classList.remove("on");input.focus();toast("เริ่มฟังเสียงไม่ได้ — ลองกดไมค์อีกครั้ง",2500)}
+  if(srOn&&srRec){if(srBtn===btn){srAim(null,null);return}srAim(btn,input);return}
+  srFull="";srUsed=0;const r=srNew();srRec=r;srAim(btn,input);
+  try{r.start();srOn=true}catch(e){srIdle();input.focus();toast("เริ่มฟังเสียงไม่ได้ — ลองกดไมค์อีกครั้ง",2500)}
 }
 const MIC='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/><path d="M8.5 21h7"/></svg>';
 const micField=(id,label,val,multi,ph="",type="text")=>`<div class="fld"><label for="${id}">${label}</label><div class="mic-row">${multi?`<textarea id="${id}" placeholder="${esc(ph)}">${esc(val)}</textarea>`:`<input id="${id}" type="${type}" value="${esc(val)}" placeholder="${esc(ph)}">`}<button type="button" class="mic" aria-label="พูดเพื่อพิมพ์">${MIC}</button></div><div class="partial"></div></div>`;
