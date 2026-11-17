@@ -212,7 +212,7 @@ textarea{min-height:84px;resize:vertical}
 <script src="firebase-config.js"></script>
 <script>
 "use strict";
-const APP_VER="2.0";
+const APP_VER="2.1";
 const svgI=(d,s=18)=>`<svg class="ico" viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const P={
   cam:'<path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.8l1.4-2h6.6l1.4 2h1.8A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.6"/>',
@@ -465,18 +465,33 @@ function matchFaces(dets){
 function similarWorker(desc,exceptId){const M=getMatcher();let best=null;for(const x of M){if(x.wid===exceptId)continue;const m=bestDist(desc,x.ds);if(m<thresh()&&(!best||m<best.m))best={wid:x.wid,m}}return best}
 
 /* ================= dictation (iPad keyboard mic fallback) ================= */
-const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let srObj=null,srBtn=null;
+/* iPad Safari: a second `new SpeechRecognition()` on the same page often never hears anything,
+   so ONE recognizer is reused for every field. Tapping another field's mic while listening just
+   moves the target field; tapping the same mic again stops. */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let srRec=null,srOn=false,srBtn=null,srTarget=null;
+const srPart=()=>srTarget?.closest(".fld")?.querySelector(".partial");
+function srIdle(){srOn=false;document.querySelectorAll(".mic.on").forEach(b=>b.classList.remove("on"));document.querySelectorAll(".partial").forEach(p=>p.textContent="")}
+function srGet(){
+  if(srRec)return srRec;const r=new SR();r.lang="th-TH";r.interimResults=true;r.continuous=false;
+  r.onresult=e=>{const input=srTarget;if(!input||!input.isConnected)return;let fin="",tmp="";
+    for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)fin+=t;else tmp+=t}
+    const part=srPart();if(part)part.textContent=tmp?"🎙 "+tmp:"";if(fin){const v=input.value;input.value=(v&&!/\s$/.test(v)?v+" ":v)+fin.trim()}};
+  r.onerror=e=>{if(e.error==="not-allowed"||e.error==="service-not-allowed")toast("ใช้ไมค์ในหน้านี้ไม่ได้ — แตะช่องแล้วกดไมค์บนแป้นพิมพ์ iPad แทน",3500)};
+  r.onend=srIdle;return srRec=r;
+}
+function srStop(){if(srRec&&srOn){try{srRec.stop()}catch(e){}}}
 function micClick(btn){
   const input=btn.parentElement.querySelector("input,textarea");
   if(!SR){input.focus();toast("แตะปุ่ม 🎤 บนแป้นพิมพ์ iPad แล้วพูดได้เลย",3200);return}
-  if(srObj){try{srObj.stop()}catch(e){}if(srBtn===btn)return}
-  const r=new SR();r.lang="th-TH";r.interimResults=true;r.continuous=false;srObj=r;srBtn=btn;
-  const part=input.closest(".fld")?.querySelector(".partial");btn.classList.add("on");
-  r.onresult=e=>{let fin="",tmp="";for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)fin+=t;else tmp+=t}
-    if(part)part.textContent=tmp?"🎙 "+tmp:"";if(fin){const v=input.value;input.value=(v&&!/\s$/.test(v)?v+" ":v)+fin.trim()}};
-  r.onerror=e=>{if(e.error==="not-allowed"||e.error==="service-not-allowed")toast("ใช้ไมค์ในหน้านี้ไม่ได้ — แตะช่องแล้วกดไมค์บนแป้นพิมพ์ iPad แทน",3500)};
-  r.onend=()=>{btn.classList.remove("on");if(part)part.textContent="";if(srObj===r)srObj=null};
-  try{r.start()}catch(e){btn.classList.remove("on");srObj=null;input.focus()}
+  const r=srGet();
+  if(srOn){
+    if(srBtn===btn){srStop();return}
+    if(srBtn)srBtn.classList.remove("on");const op=srPart();if(op)op.textContent="";
+    srBtn=btn;srTarget=input;btn.classList.add("on");return;
+  }
+  srBtn=btn;srTarget=input;btn.classList.add("on");
+  const go=()=>{r.start();srOn=true};
+  try{go()}catch(e){setTimeout(()=>{try{go()}catch(_){btn.classList.remove("on");input.focus();toast("เริ่มฟังเสียงไม่ได้ — ลองกดไมค์อีกครั้ง",2500)}},400)}
 }
 const MIC='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/><path d="M8.5 21h7"/></svg>';
 const micField=(id,label,val,multi,ph="",type="text")=>`<div class="fld"><label for="${id}">${label}</label><div class="mic-row">${multi?`<textarea id="${id}" placeholder="${esc(ph)}">${esc(val)}</textarea>`:`<input id="${id}" type="${type}" value="${esc(val)}" placeholder="${esc(ph)}">`}<button type="button" class="mic" aria-label="พูดเพื่อพิมพ์">${MIC}</button></div><div class="partial"></div></div>`;
@@ -489,7 +504,7 @@ function openSheet(html,onMount,wide){
   ov.addEventListener("click",e=>{if(e.target===ov)closeSheet()});
   $("#layer").appendChild(ov);onMount&&onMount(ov.firstChild);hydrate(ov);return ov.firstChild;
 }
-function closeSheet(){if(srObj)try{srObj.stop()}catch(e){}$("#layer").innerHTML=""}
+function closeSheet(){srStop();$("#layer").innerHTML=""}
 function ask(msg,yes="ยืนยัน",danger=true){return new Promise(res=>{const ov=document.createElement("div");ov.className="ov";ov.style.zIndex=80;ov.innerHTML=`<div class="sheet" style="max-width:460px"><h2>ยืนยัน</h2><p>${esc(msg)}</p><div class="acts"><span class="sp"></span><button class="btn" data-a="0">ยกเลิก</button><button class="btn ${danger?"del":"pri"}" data-a="1">${esc(yes)}</button></div></div>`;ov.onclick=e=>{const a=e.target.dataset.a;if(a!==undefined||e.target===ov){ov.remove();res(a==="1")}};document.body.appendChild(ov)})}
 async function saveFile(blob,filename){
   try{const f=new File([blob],filename,{type:blob.type});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:filename});return true}}catch(e){if(e&&e.name==="AbortError")return false}
